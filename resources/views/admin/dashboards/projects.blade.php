@@ -17,13 +17,11 @@
         </div>
         <div class="dashboard-selector">
             <select class="form-select" onchange="window.location.href=this.value" style="min-width: 200px; border: 2px solid var(--secondary-color); border-radius: 10px;">
-                <option value="/admin/dashboard">Main Dashboard</option>
-                <option value="/admin/dashboards/finance">Finance Dashboard</option>
+                <option value="/admin/dashboard" >Main Dashboard</option>
+                
                 <option value="/admin/dashboards/projects" selected>Projects Dashboard</option>
-                <option value="/admin/dashboards/services">Services Overview</option>
-                <option value="/admin/dashboards/pipeline">Pipeline Dashboard</option>
-                <option value="/admin/dashboards/hr">HR Dashboard</option>
-                <option value="/admin/dashboards/performance">Performance Dashboard</option>
+                <option value="/admin/dashboards/services" >Services Overview</option>
+                <option value="/admin/dashboards/pipeline" >Pipeline Dashboard</option>
             </select>
         </div>
     </div>
