@@ -504,15 +504,15 @@
             <!-- Projects Section -->
             <div class="menu-section">
                 <div class="menu-section-title">Projects</div>
-                
+
                 <div class="menu-item">
-                    <a href="/admin/projects" class="menu-link">
+                    <a href="{{ route('admin.projects.index') }}" class="menu-link">
                         <i class="fas fa-project-diagram menu-icon"></i>
                         <span class="menu-text">All Projects</span>
                         <span class="menu-badge">12</span>
                     </a>
                 </div>
-                
+
                 <div class="menu-item">
                     <a href="/admin/tasks" class="menu-link">
                         <i class="fas fa-tasks menu-icon"></i>
@@ -520,7 +520,7 @@
                         <span class="menu-badge">5</span>
                     </a>
                 </div>
-                
+
                 <div class="menu-item">
                     <a href="/admin/milestones" class="menu-link">
                         <i class="fas fa-flag-checkered menu-icon"></i>
@@ -532,21 +532,21 @@
             <!-- Clients Section -->
             <div class="menu-section">
                 <div class="menu-section-title">Clients</div>
-                
+
                 <div class="menu-item">
-                    <a href="/admin/clients" class="menu-link">
+                    <a href="{{ route('admin.clients.index') }}" class="menu-link">
                         <i class="fas fa-users menu-icon"></i>
                         <span class="menu-text">Client List</span>
                     </a>
                 </div>
-                
+
                 <div class="menu-item">
-                    <a href="/admin/contracts" class="menu-link">
+                    <a href="{{ route('admin.contracts.index') }}" class="menu-link">
                         <i class="fas fa-file-contract menu-icon"></i>
                         <span class="menu-text">Contracts</span>
                     </a>
                 </div>
-                
+
                 <div class="menu-item">
                     <a href="/admin/approvals" class="menu-link">
                         <i class="fas fa-check-circle menu-icon"></i>
@@ -559,40 +559,52 @@
             <!-- Communication Section -->
             <div class="menu-section">
                 <div class="menu-section-title">Communication</div>
-                
+
                 <div class="menu-item">
-                    <a href="/admin/notifications" class="menu-link">
+                    <a href="{{ route('admin.notification-templates.index') }}" class="menu-link">
                         <i class="fas fa-bell menu-icon"></i>
                         <span class="menu-text">Notifications</span>
                     </a>
                 </div>
-                
+
                 <div class="menu-item">
-                    <a href="/admin/emails" class="menu-link">
+                    <a href="{{ route('admin.email-templates.index') }}" class="menu-link">
                         <i class="fas fa-envelope menu-icon"></i>
                         <span class="menu-text">Email Templates</span>
                     </a>
                 </div>
-                
+
                 <div class="menu-item">
-                    <a href="/admin/messages" class="menu-link">
+                    <a href="{{ route('admin.message-templates.index') }}" class="menu-link">
                         <i class="fas fa-comments menu-icon"></i>
                         <span class="menu-text">Messages</span>
                     </a>
                 </div>
             </div>
-            
+
+            <!-- Files Section -->
+            <div class="menu-section">
+                <div class="menu-section-title">Files</div>
+
+                <div class="menu-item">
+                    <a href="{{ route('admin.files.index') }}" class="menu-link">
+                        <i class="fas fa-folder menu-icon"></i>
+                        <span class="menu-text">File Library</span>
+                    </a>
+                </div>
+            </div>
+
             <!-- Reports Section -->
             <div class="menu-section">
                 <div class="menu-section-title">Reports</div>
-                
+
                 <div class="menu-item">
                     <a href="/admin/analytics" class="menu-link">
                         <i class="fas fa-chart-line menu-icon"></i>
                         <span class="menu-text">Analytics</span>
                     </a>
                 </div>
-                
+
                 <div class="menu-item">
                     <a href="/admin/reports" class="menu-link">
                         <i class="fas fa-file-alt menu-icon"></i>
@@ -600,27 +612,34 @@
                     </a>
                 </div>
             </div>
-            
+
             <!-- Settings Section -->
             <div class="menu-section">
                 <div class="menu-section-title">Settings</div>
-                
+
                 <div class="menu-item">
-                    <a href="/admin/users" class="menu-link">
-                        <i class="fas fa-user-cog menu-icon"></i>
-                        <span class="menu-text">User Management</span>
+                    <a href="{{ route('admin.users.index') }}" class="menu-link">
+                        <i class="fas fa-users-cog menu-icon"></i>
+                        <span class="menu-text">Users</span>
                     </a>
                 </div>
-                
+
                 <div class="menu-item">
-                    <a href="/admin/settings" class="menu-link">
+                    <a href="{{ route('admin.roles.index') }}" class="menu-link">
+                        <i class="fas fa-user-shield menu-icon"></i>
+                        <span class="menu-text">Roles</span>
+                    </a>
+                </div>
+
+                <div class="menu-item">
+                    <a href="{{ route('admin.settings.index') }}" class="menu-link">
                         <i class="fas fa-cog menu-icon"></i>
                         <span class="menu-text">System Settings</span>
                     </a>
                 </div>
-                
+
                 <div class="menu-item">
-                    <a href="/admin/integrations" class="menu-link">
+                    <a href="{{ route('admin.integrations.index') }}" class="menu-link">
                         <i class="fas fa-plug menu-icon"></i>
                         <span class="menu-text">Integrations</span>
                     </a>
@@ -652,16 +671,56 @@
                     <span class="notification-badge">3</span>
                 </button>
                 
-                <div class="user-profile dropdown">
-                    <div class="user-avatar">JD</div>
-                    <span class="user-name">John Doe</span>
+                <div class="user-profile dropdown" data-bs-toggle="dropdown">
+                    <div class="user-avatar">{{ auth()->check() ? auth()->user()->name[0] : 'A' }}</div>
+                    <span class="user-name">{{ auth()->check() ? auth()->user()->name : 'Admin' }}</span>
                     <i class="fas fa-chevron-down" style="font-size: 12px; margin-left: 5px;"></i>
+
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        @auth
+                        <li><a class="dropdown-item" href="{{ route('admin.users.show', auth()->id()) }}"><i class="fas fa-user me-2"></i>Profile</a></li>
+                        @endauth
+                        <li><a class="dropdown-item" href="{{ route('admin.settings.index') }}"><i class="fas fa-cog me-2"></i>Settings</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <form method="POST" action="{{ route('logout') }}" class="d-inline">
+                                @csrf
+                                <button type="submit" class="dropdown-item"><i class="fas fa-sign-out-alt me-2"></i>Logout</button>
+                            </form>
+                        </li>
+                    </ul>
                 </div>
             </div>
         </header>
         
         <!-- Main Content -->
         <main class="main-content">
+            @if(session('success'))
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            @endif
+
+            @if(session('error'))
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i>{{ session('error') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            @endif
+
+            @if($errors->any())
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <ul class="mb-0">
+                        @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            @endif
+
             @yield('content')
         </main>
     </div>

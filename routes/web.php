@@ -1,139 +1,120 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\RoleController;
+use App\Http\Controllers\Admin\SettingController;
+use App\Http\Controllers\Admin\FileController;
+use App\Http\Controllers\Admin\IntegrationController;
+use App\Http\Controllers\Admin\NotificationTemplateController;
+use App\Http\Controllers\Admin\EmailTemplateController;
+use App\Http\Controllers\Admin\MessageTemplateController;
+use App\Http\Controllers\Admin\ClientController;
+use App\Http\Controllers\Admin\ProjectController;
+use App\Http\Controllers\Admin\ContractController;
 
 Route::get('/', function () {
     return redirect('/login');
 });
 
 // Authentication Routes
-Route::get('/login', function () {
-    return view('auth.login');
-})->name('login');
-
-Route::post('/login', function () {
-    // Handle login logic here
-    return redirect('/admin/dashboard');
-})->name('login.post');
+Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+Route::post('/login', [AuthController::class, 'login'])->name('login.post');
+Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // Admin Routes (protected by auth middleware in production)
-Route::prefix('admin')->group(function () {
+Route::prefix('admin')->name('admin.')->group(function () {
     // Dashboard
     Route::get('/dashboard', function () {
         return view('admin.dashboard');
-    })->name('admin.dashboard');
-    
+    })->name('dashboard');
+
     // Multiple Dashboards
-    Route::prefix('dashboards')->group(function () {
+    Route::prefix('dashboards')->name('dashboards.')->group(function () {
         Route::get('/finance', function () {
             return view('admin.dashboards.finance');
-        })->name('admin.dashboards.finance');
-        
+        })->name('finance');
+
         Route::get('/projects', function () {
             return view('admin.dashboards.projects');
-        })->name('admin.dashboards.projects');
-        
+        })->name('projects');
+
         Route::get('/services', function () {
             return view('admin.dashboards.services');
-        })->name('admin.dashboards.services');
-        
+        })->name('services');
+
         Route::get('/pipeline', function () {
             return view('admin.dashboards.pipeline');
-        })->name('admin.dashboards.pipeline');
-        
+        })->name('pipeline');
+
         Route::get('/hr', function () {
             return view('admin.dashboards.hr');
-        })->name('admin.dashboards.hr');
-        
+        })->name('hr');
+
         Route::get('/performance', function () {
             return view('admin.dashboards.performance');
-        })->name('admin.dashboards.performance');
+        })->name('performance');
     });
-    
+
     // Engineering Services
-    Route::prefix('engineering')->group(function () {
+    Route::prefix('engineering')->name('engineering.')->group(function () {
         Route::get('/consulting', function () {
             return view('admin.engineering.consulting');
-        })->name('admin.engineering.consulting');
-        
+        })->name('consulting');
+
         Route::get('/supervision', function () {
             return view('admin.engineering.supervision');
-        })->name('admin.engineering.supervision');
+        })->name('supervision');
     });
-    
+
     // Design Services
-    Route::prefix('design')->group(function () {
+    Route::prefix('design')->name('design.')->group(function () {
         Route::get('/interiors', function () {
             return view('admin.design.interiors');
-        })->name('admin.design.interiors');
-        
+        })->name('interiors');
+
         Route::get('/landscape', function () {
             return view('admin.design.landscape');
-        })->name('admin.design.landscape');
-        
+        })->name('landscape');
+
         Route::get('/fitout', function () {
             return view('admin.design.fitout');
-        })->name('admin.design.fitout');
+        })->name('fitout');
     });
-    
-    // Projects Management
-    Route::get('/projects', function () {
-        return view('admin.projects');
-    })->name('admin.projects');
-    
+
+    // Tasks & Milestones (existing simple routes)
     Route::get('/tasks', function () {
         return view('admin.tasks');
-    })->name('admin.tasks');
-    
+    })->name('tasks');
+
     Route::get('/milestones', function () {
         return view('admin.milestones');
-    })->name('admin.milestones');
-    
-    // Client Management
-    Route::get('/clients', function () {
-        return view('admin.clients');
-    })->name('admin.clients');
-    
-    Route::get('/contracts', function () {
-        return view('admin.contracts');
-    })->name('admin.contracts');
-    
+    })->name('milestones');
+
     Route::get('/approvals', function () {
         return view('admin.approvals');
-    })->name('admin.approvals');
-    
-    // Communication
-    Route::get('/notifications', function () {
-        return view('admin.notifications');
-    })->name('admin.notifications');
-    
-    Route::get('/emails', function () {
-        return view('admin.emails');
-    })->name('admin.emails');
-    
-    Route::get('/messages', function () {
-        return view('admin.messages');
-    })->name('admin.messages');
-    
+    })->name('approvals');
+
     // Reports & Analytics
     Route::get('/analytics', function () {
         return view('admin.analytics');
-    })->name('admin.analytics');
-    
+    })->name('analytics');
+
     Route::get('/reports', function () {
         return view('admin.reports');
-    })->name('admin.reports');
-    
-    // Settings
-    Route::get('/users', function () {
-        return view('admin.users');
-    })->name('admin.users');
-    
-    Route::get('/settings', function () {
-        return view('admin.settings');
-    })->name('admin.settings');
-    
-    Route::get('/integrations', function () {
-        return view('admin.integrations');
-    })->name('admin.integrations');
+    })->name('reports');
+
+    // CRUD Resource Routes
+    Route::resource('users', UserController::class);
+    Route::resource('roles', RoleController::class);
+    Route::resource('settings', SettingController::class);
+    Route::resource('files', FileController::class);
+    Route::resource('integrations', IntegrationController::class);
+    Route::resource('notification-templates', NotificationTemplateController::class);
+    Route::resource('email-templates', EmailTemplateController::class);
+    Route::resource('message-templates', MessageTemplateController::class);
+    Route::resource('clients', ClientController::class);
+    Route::resource('projects', ProjectController::class);
+    Route::resource('contracts', ContractController::class);
 });
