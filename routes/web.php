@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\MessageTemplateController;
 use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\ProjectController;
 use App\Http\Controllers\Admin\ContractController;
+use App\Http\Controllers\Admin\DocumentTypeController;
 
 Route::get('/', function () {
     return redirect('/login');
@@ -117,4 +118,5 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::resource('clients', ClientController::class);
     Route::resource('projects', ProjectController::class);
     Route::resource('contracts', ContractController::class);
+    Route::resource('document-types', DocumentTypeController::class);
 });

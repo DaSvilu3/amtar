@@ -21,6 +21,9 @@ class File extends Model
         'description',
         'uploaded_by',
         'is_public',
+        'document_type_id',
+        'entity_type',
+        'entity_id',
     ];
 
     /**
@@ -41,5 +44,39 @@ class File extends Model
     public function uploadedBy()
     {
         return $this->belongsTo(User::class, 'uploaded_by');
+    }
+
+    /**
+     * Get the document type of the file.
+     */
+    public function documentType()
+    {
+        return $this->belongsTo(DocumentType::class);
+    }
+
+    /**
+     * Get the parent entity (polymorphic relationship).
+     */
+    public function entity()
+    {
+        return $this->morphTo();
+    }
+
+    /**
+     * Get the entity for this file (manual polymorphic).
+     */
+    public function getEntityAttribute()
+    {
+        if (!$this->entity_type || !$this->entity_id) {
+            return null;
+        }
+
+        $modelClass = 'App\\Models\\' . ucfirst($this->entity_type);
+
+        if (class_exists($modelClass)) {
+            return $modelClass::find($this->entity_id);
+        }
+
+        return null;
     }
 }

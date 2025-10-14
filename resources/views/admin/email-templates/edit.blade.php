@@ -51,8 +51,8 @@
 
 @push('styles')
 <style>
-    .btn-primary {{ background-color: var(--primary-color); border-color: var(--primary-color); }}
-    .btn-primary:hover {{ background-color: var(--hover-color); border-color: var(--hover-color); }}
-    .form-label {{ font-weight: 500; color: var(--primary-color); }}
+    .btn-primary { background-color: var(--primary-color); border-color: var(--primary-color); }
+    .btn-primary:hover { background-color: var(--hover-color); border-color: var(--hover-color); }
+    .form-label { font-weight: 500; color: var(--primary-color); }
 </style>
 @endpush

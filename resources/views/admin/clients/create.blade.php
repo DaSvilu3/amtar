@@ -18,7 +18,7 @@
     <div class="row">
         <div class="col-lg-8">
             <div class="dashboard-card">
-                <form action="{{ route('admin.clients.store') }}" method="POST">
+                <form action="{{ route('admin.clients.store') }}" method="POST" enctype="multipart/form-data">
                     @csrf
 
                     <div class="mb-3">
@@ -88,6 +88,60 @@
                             <option value="inactive" {{ old('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
                         </select>
                         @error('status')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <hr class="my-4">
+
+                    <h5 class="mb-3"><i class="fas fa-file-upload me-2"></i>Required Documents</h5>
+
+                    <div class="mb-3">
+                        <label for="document_civil_id" class="form-label">
+                            Client ID / Civil ID <span class="text-danger">*</span>
+                        </label>
+                        <input type="file" class="form-control @error('documents.client_civil_id') is-invalid @enderror"
+                               id="document_civil_id" name="documents[client_civil_id]"
+                               accept=".pdf,.jpg,.jpeg,.png">
+                        <small class="text-muted">Accepted formats: PDF, JPG, PNG</small>
+                        @error('documents.client_civil_id')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="document_commercial_registration" class="form-label">
+                            Commercial Registration <span class="text-danger">*</span>
+                        </label>
+                        <input type="file" class="form-control @error('documents.client_commercial_registration') is-invalid @enderror"
+                               id="document_commercial_registration" name="documents[client_commercial_registration]"
+                               accept=".pdf,.jpg,.jpeg,.png">
+                        <small class="text-muted">Accepted formats: PDF, JPG, PNG</small>
+                        @error('documents.client_commercial_registration')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <h5 class="mb-3 mt-4"><i class="fas fa-file me-2"></i>Optional Documents</h5>
+
+                    <div class="mb-3">
+                        <label for="document_tax_certificate" class="form-label">Tax Registration Certificate</label>
+                        <input type="file" class="form-control @error('documents.client_tax_certificate') is-invalid @enderror"
+                               id="document_tax_certificate" name="documents[client_tax_certificate]"
+                               accept=".pdf,.jpg,.jpeg,.png">
+                        <small class="text-muted">Accepted formats: PDF, JPG, PNG</small>
+                        @error('documents.client_tax_certificate')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="document_authorization_letter" class="form-label">Authorization Letter</label>
+                        <input type="file" class="form-control @error('documents.client_authorization_letter') is-invalid @enderror"
+                               id="document_authorization_letter" name="documents[client_authorization_letter]"
+                               accept=".pdf,.jpg,.jpeg,.png">
+                        <small class="text-muted">Accepted formats: PDF, JPG, PNG</small>
+                        @error('documents.client_authorization_letter')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>

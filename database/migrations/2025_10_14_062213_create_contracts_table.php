@@ -19,7 +19,7 @@ return new class extends Migration
             $table->foreignId('project_id')->nullable()->constrained()->onDelete('cascade');
             $table->text('description')->nullable();
             $table->decimal('value', 15, 2);
-            $table->string('currency')->default('USD');
+            $table->string('currency')->default('OMR');
             $table->date('start_date');
             $table->date('end_date');
             $table->string('status')->default('draft'); // draft, sent, signed, active, completed, cancelled

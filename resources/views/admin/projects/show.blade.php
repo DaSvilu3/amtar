@@ -59,6 +59,6 @@
 
 @push('styles')
 <style>
-    .dashboard-card h5 {{ color: var(--primary-color); border-bottom: 2px solid var(--secondary-color); padding-bottom: 10px; }}
+    .dashboard-card h5 { color: var(--primary-color); border-bottom: 2px solid var(--secondary-color); padding-bottom: 10px; }
 </style>
 @endpush

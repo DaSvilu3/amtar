@@ -632,6 +632,13 @@
                 </div>
 
                 <div class="menu-item">
+                    <a href="{{ route('admin.document-types.index') }}" class="menu-link">
+                        <i class="fas fa-file-alt menu-icon"></i>
+                        <span class="menu-text">Document Types</span>
+                    </a>
+                </div>
+
+                <div class="menu-item">
                     <a href="{{ route('admin.settings.index') }}" class="menu-link">
                         <i class="fas fa-cog menu-icon"></i>
                         <span class="menu-text">System Settings</span>
