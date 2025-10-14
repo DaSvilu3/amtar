@@ -23,8 +23,8 @@ class ProjectController extends Controller
 {
     public function index()
     {
-        $projects = Project::with('client', 'projectManager')->orderBy('created_at', 'desc')->paginate(20);
-        return view('admin.projects.index', compact('projects'));
+        $items = Project::with('client', 'projectManager')->orderBy('created_at', 'desc')->paginate(20);
+        return view('admin.projects.index', compact('items'));
     }
 
     public function create()

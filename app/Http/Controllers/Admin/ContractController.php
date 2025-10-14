@@ -108,4 +108,10 @@ class ContractController extends Controller
         $contract->delete();
         return redirect()->route('admin.contracts.index')->with('success', 'Contract deleted successfully.');
     }
+
+    public function print(Contract $contract)
+    {
+        $contract->load('client', 'project.projectManager', 'creator');
+        return view('admin.contracts.print', compact('contract'));
+    }
 }

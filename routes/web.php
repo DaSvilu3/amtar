@@ -118,6 +118,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::resource('clients', ClientController::class);
     Route::resource('projects', ProjectController::class);
     Route::resource('contracts', ContractController::class);
+    Route::get('contracts/{contract}/print', [ContractController::class, 'print'])->name('contracts.print');
     Route::resource('document-types', DocumentTypeController::class);
 
     // API Routes for dynamic service loading
