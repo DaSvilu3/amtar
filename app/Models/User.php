@@ -21,6 +21,10 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'phone',
+        'avatar',
+        'is_active',
+        'last_login_at',
     ];
 
     /**
@@ -43,6 +47,40 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'last_login_at' => 'datetime',
+            'is_active' => 'boolean',
         ];
+    }
+
+    /**
+     * Get the roles assigned to the user.
+     */
+    public function roles()
+    {
+        return $this->belongsToMany(Role::class);
+    }
+
+    /**
+     * Get the projects managed by the user.
+     */
+    public function managedProjects()
+    {
+        return $this->hasMany(Project::class, 'project_manager_id');
+    }
+
+    /**
+     * Get the files uploaded by the user.
+     */
+    public function uploadedFiles()
+    {
+        return $this->hasMany(File::class, 'uploaded_by');
+    }
+
+    /**
+     * Get the contracts created by the user.
+     */
+    public function createdContracts()
+    {
+        return $this->hasMany(Contract::class, 'created_by');
     }
 }
