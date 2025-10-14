@@ -119,4 +119,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::resource('projects', ProjectController::class);
     Route::resource('contracts', ContractController::class);
     Route::resource('document-types', DocumentTypeController::class);
+
+    // API Routes for dynamic service loading
+    Route::get('/api/services/sub-services/{mainServiceId}', [ProjectController::class, 'getSubServices'])->name('api.services.subservices');
+    Route::get('/api/services/packages', [ProjectController::class, 'getPackages'])->name('api.services.packages');
+    Route::get('/api/services/package-services/{packageId}', [ProjectController::class, 'getPackageServices'])->name('api.services.package-services');
+    Route::get('/api/services/all', [ProjectController::class, 'getAllServices'])->name('api.services.all');
 });

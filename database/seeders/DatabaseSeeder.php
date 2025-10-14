@@ -13,12 +13,13 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Run seeders in order (roles first, then users, then settings and integrations)
+        // Run seeders in order (roles first, then users, then settings, integrations, services, and documents)
         $this->call([
             RoleSeeder::class,
             UserSeeder::class,
             SettingSeeder::class,
             IntegrationSeeder::class,
+            ServiceSeeder::class,        // Seed all services, packages, stages
             DocumentTypeSeeder::class,
         ]);
     }

@@ -13,14 +13,13 @@ class ProjectService extends Model
      */
     protected $fillable = [
         'project_id',
-        'service_type',
-        'service_name',
-        'is_enabled',
-        'cost',
-        'description',
-        'start_date',
-        'end_date',
-        'status',
+        'service_id',
+        'service_stage_id',
+        'is_from_package',
+        'is_completed',
+        'completed_at',
+        'notes',
+        'sort_order',
     ];
 
     /**
@@ -31,10 +30,9 @@ class ProjectService extends Model
     protected function casts(): array
     {
         return [
-            'is_enabled' => 'boolean',
-            'cost' => 'decimal:2',
-            'start_date' => 'date',
-            'end_date' => 'date',
+            'is_from_package' => 'boolean',
+            'is_completed' => 'boolean',
+            'completed_at' => 'date',
         ];
     }
 
@@ -44,5 +42,21 @@ class ProjectService extends Model
     public function project()
     {
         return $this->belongsTo(Project::class);
+    }
+
+    /**
+     * Get the service that owns the project service.
+     */
+    public function service()
+    {
+        return $this->belongsTo(Service::class);
+    }
+
+    /**
+     * Get the service stage that owns the project service.
+     */
+    public function serviceStage()
+    {
+        return $this->belongsTo(ServiceStage::class);
     }
 }

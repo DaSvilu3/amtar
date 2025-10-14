@@ -23,6 +23,9 @@ class Project extends Model
         'actual_start_date',
         'actual_end_date',
         'project_manager_id',
+        'main_service_id',
+        'sub_service_id',
+        'service_package_id',
         'location',
         'progress',
     ];
@@ -73,5 +76,29 @@ class Project extends Model
     public function contracts()
     {
         return $this->hasMany(Contract::class);
+    }
+
+    /**
+     * Get the main service for the project.
+     */
+    public function mainService()
+    {
+        return $this->belongsTo(MainService::class);
+    }
+
+    /**
+     * Get the sub-service for the project.
+     */
+    public function subService()
+    {
+        return $this->belongsTo(SubService::class);
+    }
+
+    /**
+     * Get the service package for the project.
+     */
+    public function servicePackage()
+    {
+        return $this->belongsTo(ServicePackage::class);
     }
 }

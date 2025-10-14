@@ -24,6 +24,8 @@ class Contract extends Model
         'status',
         'file_path',
         'terms',
+        'services',
+        'auto_generated',
         'signed_date',
         'created_by',
     ];
@@ -40,6 +42,8 @@ class Contract extends Model
             'start_date' => 'date',
             'end_date' => 'date',
             'signed_date' => 'date',
+            'services' => 'array',
+            'auto_generated' => 'boolean',
         ];
     }
 
