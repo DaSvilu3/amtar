@@ -101,4 +101,21 @@ class Project extends Model
     {
         return $this->belongsTo(ServicePackage::class);
     }
+
+    /**
+     * Get the files/documents for the project.
+     */
+    public function files()
+    {
+        return $this->hasMany(File::class, 'entity_id')
+            ->where('entity_type', 'project');
+    }
+
+    /**
+     * Get the documents for the project (alias for files).
+     */
+    public function documents()
+    {
+        return $this->files();
+    }
 }

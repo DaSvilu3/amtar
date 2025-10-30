@@ -14,24 +14,29 @@ use Illuminate\Support\Str;
 /**
  * ServiceSeeder - Comprehensive Service Catalog Seeder
  *
- * This seeder populates the service catalog with all services, stages, packages, and their relationships.
+ * This seeder populates the service catalog with all services, stages, and packages.
  *
  * Seeding Order (respects foreign key constraints):
  * 1. Clear existing data (in reverse dependency order)
- * 2. Seed ServiceStages - All unique stages from the JSON
+ * 2. Seed ServiceStages - All unique stages from the service catalog
  * 3. Seed Services - All individual services linked to their stages
  * 4. Seed MainServices - Engineering, Interior Design, Landscape Design, Fit-Out Design
  * 5. Seed SubServices - Engineering Consultation, Engineering Supervision (under Engineering)
- * 6. Seed ServicePackages - All packages with their main_service_id and sub_service_id
- * 7. Link Services to Packages - Via package_service pivot table with stage information
+ * 6. Seed ServicePackages - 3 generic packages (Basic, Standard, Premium)
+ * 7. Link Services to Packages - NOT USED (services selected independently during project creation)
  *
  * Data Structure:
  * - MainServices (4): Engineering, Interior Design, Landscape Design, Fit-Out Design
  * - SubServices (2): Engineering Consultation, Engineering Supervision (under Engineering)
  * - ServiceStages (20+): Pre-Design, Conceptual Design, Schematic Design, etc.
  * - Services (200+): Individual service items from all disciplines
- * - ServicePackages (15): 3 packages per sub-service/main-service
- * - Pivot Relations: Links services to packages with stage context
+ * - ServicePackages (3): Basic, Standard, Premium (generic packages not tied to specific services)
+ *
+ * New Architecture:
+ * - Packages are now generic (Basic/Standard/Premium) and NOT linked to specific main/sub services
+ * - Users select Main Service + Sub Service (if applicable) during project creation
+ * - Users then select specific services from the available pool based on their main/sub service
+ * - Package selection is independent and used for pricing/scope guidance
  */
 class ServiceSeeder extends Seeder
 {
@@ -449,135 +454,33 @@ class ServiceSeeder extends Seeder
     }
 
     /**
-     * Seed service packages
+     * Seed service packages - Generic 3-tier packages not tied to specific services
      */
     private function seedServicePackages(array $mainServices, array $subServices): array
     {
         $packageDefinitions = [
-            // Engineering Consultation Packages
             [
-                'id' => 'eng_consult_pkg1',
-                'main_service' => 'engineering',
-                'sub_service' => 'engineering_consultation',
-                'name' => 'Package 1 - Basic Consultation',
-                'description' => 'Essential design and documentation package',
+                'id' => 'basic',
+                'name' => 'Basic Package',
+                'description' => 'Essential services covering concept development and initial design phases. Ideal for clients with clear requirements seeking fundamental design solutions.',
             ],
             [
-                'id' => 'eng_consult_pkg2',
-                'main_service' => 'engineering',
-                'sub_service' => 'engineering_consultation',
-                'name' => 'Package 2 - Intermediate Consultation',
-                'description' => 'Consultation with construction documentation and bidding support',
+                'id' => 'standard',
+                'name' => 'Standard Package',
+                'description' => 'Comprehensive services including detailed design, documentation, and coordination. Perfect for clients requiring complete design and technical specifications with professional oversight.',
             ],
             [
-                'id' => 'eng_consult_pkg3',
-                'main_service' => 'engineering',
-                'sub_service' => 'engineering_consultation',
-                'name' => 'Package 3 - Complete Consultation',
-                'description' => 'Full consultation with supervision and procurement management',
-            ],
-
-            // Engineering Supervision Packages
-            [
-                'id' => 'eng_super_pkg1',
-                'main_service' => 'engineering',
-                'sub_service' => 'engineering_supervision',
-                'name' => 'Package 1 - Basic Supervision',
-                'description' => 'Essential site supervision and reporting',
-            ],
-            [
-                'id' => 'eng_super_pkg2',
-                'main_service' => 'engineering',
-                'sub_service' => 'engineering_supervision',
-                'name' => 'Package 2 - Intermediate Supervision',
-                'description' => 'Regular supervision with quality assurance',
-            ],
-            [
-                'id' => 'eng_super_pkg3',
-                'main_service' => 'engineering',
-                'sub_service' => 'engineering_supervision',
-                'name' => 'Package 3 - Complete Supervision',
-                'description' => 'Full-time supervision with complete project management',
-            ],
-
-            // Interior Design Packages
-            [
-                'id' => 'interior_pkg1',
-                'main_service' => 'design_interior',
-                'sub_service' => null,
-                'name' => 'Package 1 - Concept Design',
-                'description' => 'Basic interior concept and visualization',
-            ],
-            [
-                'id' => 'interior_pkg2',
-                'main_service' => 'design_interior',
-                'sub_service' => null,
-                'name' => 'Package 2 - Design Development',
-                'description' => 'Detailed interior design with specifications',
-            ],
-            [
-                'id' => 'interior_pkg3',
-                'main_service' => 'design_interior',
-                'sub_service' => null,
-                'name' => 'Package 3 - Complete Interior Design',
-                'description' => 'Full interior design with procurement and supervision',
-            ],
-
-            // Landscape Design Packages
-            [
-                'id' => 'landscape_pkg1',
-                'main_service' => 'design_landscape',
-                'sub_service' => null,
-                'name' => 'Package 1 - Concept Design',
-                'description' => 'Basic landscape concept and master planning',
-            ],
-            [
-                'id' => 'landscape_pkg2',
-                'main_service' => 'design_landscape',
-                'sub_service' => null,
-                'name' => 'Package 2 - Design Development',
-                'description' => 'Detailed landscape design with planting and irrigation plans',
-            ],
-            [
-                'id' => 'landscape_pkg3',
-                'main_service' => 'design_landscape',
-                'sub_service' => null,
-                'name' => 'Package 3 - Complete Landscape Design',
-                'description' => 'Full landscape design with construction documentation and supervision',
-            ],
-
-            // Fit-Out Design Packages
-            [
-                'id' => 'fitout_pkg1',
-                'main_service' => 'design_fitout',
-                'sub_service' => null,
-                'name' => 'Package 1 - Basic Fit-Out',
-                'description' => 'Essential fit-out design and documentation',
-            ],
-            [
-                'id' => 'fitout_pkg2',
-                'main_service' => 'design_fitout',
-                'sub_service' => null,
-                'name' => 'Package 2 - Intermediate Fit-Out',
-                'description' => 'Comprehensive fit-out with MEP coordination',
-            ],
-            [
-                'id' => 'fitout_pkg3',
-                'main_service' => 'design_fitout',
-                'sub_service' => null,
-                'name' => 'Package 3 - Complete Fit-Out',
-                'description' => 'Full fit-out service with project management and supervision',
+                'id' => 'premium',
+                'name' => 'Premium Package',
+                'description' => 'Full-service solution with end-to-end project support including design, documentation, procurement, supervision, and project closeout. Designed for clients seeking turnkey solutions with complete project management.',
             ],
         ];
 
         $packages = [];
         foreach ($packageDefinitions as $index => $packageData) {
-            $mainServiceId = $mainServices[$packageData['main_service']]->id;
-            $subServiceId = $packageData['sub_service'] ? $subServices[$packageData['sub_service']]->id : null;
-
             $package = ServicePackage::create([
-                'main_service_id' => $mainServiceId,
-                'sub_service_id' => $subServiceId,
+                'main_service_id' => null,
+                'sub_service_id' => null,
                 'slug' => $packageData['id'],
                 'name' => $packageData['name'],
                 'description' => $packageData['description'],
@@ -592,153 +495,22 @@ class ServiceSeeder extends Seeder
 
     /**
      * Link services to packages via pivot table
+     * Note: With the new 3-package system, services are NOT pre-linked to packages.
+     * Users will select services independently during project creation based on their chosen main/sub services.
+     * The package selection (Basic, Standard, Premium) is separate and used for pricing/scope definition.
      */
     private function linkServicesToPackages(array $packages, array $services, array $stages): void
     {
-        // Engineering Consultation Package 1
-        $this->attachServicesToPackage($packages['eng_consult_pkg1'], [
-            ['stage' => 'pre_design', 'services' => ['site_data_collection', 'client_requirements_study', 'preliminary_budget_schedule']],
-            ['stage' => 'conceptual_design', 'services' => ['concept_idea', 'bubble_diagrams_zoning', 'design_narrative']],
-            ['stage' => 'schematic_design', 'services' => ['floor_plan_development', 'circulation_functional_relationships', 'preliminary_3d_perspectives']],
-            ['stage' => 'design_development', 'services' => ['refined_drawings', 'service_space_allocation', 'architectural_elevations']],
-            ['stage' => '3d_visualization', 'services' => ['realistic_3d_renderings', 'day_night_views', 'walkthrough_animation']],
-            ['stage' => 'quality_handover', 'services' => ['delivery_models_visuals']],
-        ], $services, $stages);
+        // With the new design, packages are generic and not pre-linked to specific services.
+        // Services are selected during project creation based on:
+        // 1. Main Service (e.g., Engineering, Interior Design)
+        // 2. Sub Service (e.g., Engineering Consultation, Engineering Supervision) - if applicable
+        // 3. Package level (Basic, Standard, Premium) - for pricing/scope guidance
 
-        // Engineering Consultation Package 2
-        $this->attachServicesToPackage($packages['eng_consult_pkg2'], [
-            ['stage' => 'pre_design', 'services' => ['site_data_collection', 'client_requirements_study', 'preliminary_budget_schedule']],
-            ['stage' => 'conceptual_design', 'services' => ['concept_idea', 'bubble_diagrams_zoning', 'initial_structural_mep_studies']],
-            ['stage' => 'schematic_design', 'services' => ['floor_plan_development', 'preliminary_elevations', 'column_locations', 'initial_mep_layouts']],
-            ['stage' => 'design_development', 'services' => ['architectural_structural_electrical_mechanical_development']],
-            ['stage' => '3d_visualization', 'services' => ['3d_visualization_optional']],
-            ['stage' => 'construction_documents', 'services' => ['detailed_working_drawings', 'bill_of_quantities', 'technical_specifications']],
-            ['stage' => 'tendering_bidding', 'services' => ['tender_documents', 'bid_evaluation', 'contract_award']],
-            ['stage' => 'multidisciplinary_coordination', 'services' => ['architectural_structural_mep_coordination']],
-            ['stage' => 'quality_handover', 'services' => ['snagging', 'as_built_drawings']],
-        ], $services, $stages);
+        // The package_service pivot table is no longer used for pre-defined relationships.
+        // Instead, the project_services table will store the user's custom service selections.
 
-        // Engineering Consultation Package 3
-        $this->attachServicesToPackage($packages['eng_consult_pkg3'], [
-            ['stage' => 'pre_design', 'services' => ['site_data_collection', 'client_requirements_study', 'preliminary_budget_schedule']],
-            ['stage' => 'conceptual_design', 'services' => ['concept_idea', 'bubble_diagrams_zoning', 'initial_structural_mep_studies']],
-            ['stage' => 'schematic_design', 'services' => ['floor_plan_development', 'preliminary_elevations', 'column_locations', 'initial_mep_layouts']],
-            ['stage' => 'design_development', 'services' => ['architectural_structural_electrical_mechanical_development']],
-            ['stage' => '3d_visualization', 'services' => ['3d_visualization_optional']],
-            ['stage' => 'construction_documents', 'services' => ['detailed_working_drawings', 'bill_of_quantities', 'technical_specifications']],
-            ['stage' => 'tendering_bidding', 'services' => ['tender_documents', 'bid_evaluation', 'contract_award']],
-            ['stage' => 'contract_administration', 'services' => ['contract_administration', 'site_supervision', 'progress_reports']],
-            ['stage' => 'procurement_management', 'services' => ['material_delivery_schedules', 'price_comparison', 'material_approval']],
-            ['stage' => 'multidisciplinary_coordination', 'services' => ['architectural_structural_mep_finishes_coordination']],
-            ['stage' => 'quality_handover', 'services' => ['snagging', 'as_built_drawings', 'vendor_warranties']],
-        ], $services, $stages);
-
-        // Engineering Supervision Package 1
-        $this->attachServicesToPackage($packages['eng_super_pkg1'], [
-            ['stage' => 'pre_construction', 'services' => ['review_construction_drawings', 'contractor_coordination', 'supervision_schedule']],
-            ['stage' => 'construction_supervision', 'services' => ['periodic_site_visits', 'progress_monitoring', 'photo_documentation']],
-            ['stage' => 'quality_control', 'services' => ['workmanship_inspection', 'compliance_verification']],
-        ], $services, $stages);
-
-        // Engineering Supervision Package 2
-        $this->attachServicesToPackage($packages['eng_super_pkg2'], [
-            ['stage' => 'pre_construction', 'services' => ['review_construction_drawings', 'contractor_coordination', 'supervision_schedule', 'baseline_schedule_review']],
-            ['stage' => 'construction_supervision', 'services' => ['regular_site_visits', 'progress_monitoring', 'photo_documentation', 'rfi_responses', 'progress_reports']],
-            ['stage' => 'quality_control', 'services' => ['workmanship_inspection', 'compliance_verification', 'material_testing_coordination', 'deficiency_tracking']],
-            ['stage' => 'project_closeout', 'services' => ['final_inspection', 'snagging_list', 'closeout_documentation']],
-        ], $services, $stages);
-
-        // Engineering Supervision Package 3
-        $this->attachServicesToPackage($packages['eng_super_pkg3'], [
-            ['stage' => 'pre_construction', 'services' => ['review_construction_drawings', 'contractor_coordination', 'supervision_schedule', 'baseline_schedule_review', 'pre_construction_meeting']],
-            ['stage' => 'construction_supervision', 'services' => ['fulltime_site_presence', 'daily_progress_monitoring', 'photo_documentation', 'rfi_responses', 'weekly_progress_reports', 'change_order_management', 'meeting_coordination']],
-            ['stage' => 'quality_control', 'services' => ['comprehensive_workmanship_inspection', 'compliance_verification', 'material_testing_coordination', 'deficiency_tracking', 'quality_audits']],
-            ['stage' => 'cost_schedule_control', 'services' => ['schedule_monitoring', 'payment_certification', 'cost_tracking', 'variation_management']],
-            ['stage' => 'project_closeout', 'services' => ['final_inspection', 'comprehensive_snagging', 'closeout_documentation', 'as_built_coordination', 'warranty_documentation', 'handover_management']],
-        ], $services, $stages);
-
-        // Interior Design Package 1
-        $this->attachServicesToPackage($packages['interior_pkg1'], [
-            ['stage' => 'briefing', 'services' => ['client_interview', 'space_requirements', 'style_preferences', 'budget_discussion']],
-            ['stage' => 'concept', 'services' => ['mood_boards', 'color_schemes', 'material_palettes', 'concept_sketches']],
-            ['stage' => 'visualization', 'services' => ['3d_renderings', 'key_views']],
-        ], $services, $stages);
-
-        // Interior Design Package 2
-        $this->attachServicesToPackage($packages['interior_pkg2'], [
-            ['stage' => 'briefing', 'services' => ['client_interview', 'space_requirements', 'style_preferences', 'budget_discussion', 'site_survey']],
-            ['stage' => 'concept', 'services' => ['mood_boards', 'color_schemes', 'material_palettes', 'concept_sketches', 'space_planning']],
-            ['stage' => 'design_development', 'services' => ['detailed_floor_plans', 'elevation_drawings', 'ceiling_plans', 'lighting_design', 'furniture_layout']],
-            ['stage' => 'visualization', 'services' => ['3d_renderings', 'multiple_views', 'material_samples']],
-            ['stage' => 'documentation', 'services' => ['material_specifications', 'furniture_specifications', 'finishes_schedule']],
-        ], $services, $stages);
-
-        // Interior Design Package 3
-        $this->attachServicesToPackage($packages['interior_pkg3'], [
-            ['stage' => 'briefing', 'services' => ['client_interview', 'space_requirements', 'style_preferences', 'budget_discussion', 'detailed_site_survey']],
-            ['stage' => 'concept', 'services' => ['mood_boards', 'color_schemes', 'material_palettes', 'concept_sketches', 'space_planning', 'concept_presentation']],
-            ['stage' => 'design_development', 'services' => ['detailed_floor_plans', 'elevation_drawings', 'ceiling_plans', 'lighting_design', 'furniture_layout', 'custom_furniture_design', 'millwork_details']],
-            ['stage' => 'visualization', 'services' => ['photorealistic_renderings', 'multiple_views', 'material_samples', 'walkthrough_animation_interior']],
-            ['stage' => 'documentation', 'services' => ['construction_drawings', 'material_specifications', 'furniture_specifications', 'finishes_schedule', 'joinery_details', 'lighting_specifications']],
-            ['stage' => 'procurement', 'services' => ['vendor_sourcing', 'price_negotiation', 'purchase_orders', 'delivery_coordination']],
-            ['stage' => 'implementation', 'services' => ['site_supervision_interior', 'quality_inspection', 'installation_coordination', 'snagging_interior', 'final_styling']],
-        ], $services, $stages);
-
-        // Landscape Design Package 1
-        $this->attachServicesToPackage($packages['landscape_pkg1'], [
-            ['stage' => 'site_analysis', 'services' => ['site_visit', 'topography_review', 'climate_analysis', 'existing_vegetation_survey']],
-            ['stage' => 'concept', 'services' => ['master_plan_concept', 'zoning_diagram', 'plant_palette', 'concept_sketches_landscape']],
-            ['stage' => 'visualization', 'services' => ['3d_renderings_landscape', 'perspective_views']],
-        ], $services, $stages);
-
-        // Landscape Design Package 2
-        $this->attachServicesToPackage($packages['landscape_pkg2'], [
-            ['stage' => 'site_analysis', 'services' => ['detailed_site_survey_landscape', 'topography_review', 'climate_analysis', 'soil_testing', 'existing_vegetation_survey', 'drainage_analysis']],
-            ['stage' => 'concept', 'services' => ['master_plan_concept', 'zoning_diagram', 'plant_palette', 'hardscape_materials', 'concept_sketches_landscape']],
-            ['stage' => 'design_development', 'services' => ['detailed_master_plan', 'planting_plan', 'irrigation_layout', 'hardscape_layout', 'lighting_plan', 'grading_plan']],
-            ['stage' => 'visualization', 'services' => ['3d_renderings_landscape', 'multiple_perspective_views', 'material_boards']],
-            ['stage' => 'documentation', 'services' => ['planting_specifications', 'material_specifications_landscape', 'construction_details']],
-        ], $services, $stages);
-
-        // Landscape Design Package 3
-        $this->attachServicesToPackage($packages['landscape_pkg3'], [
-            ['stage' => 'site_analysis', 'services' => ['comprehensive_site_survey', 'topography_review', 'climate_analysis', 'soil_testing', 'existing_vegetation_survey', 'drainage_analysis', 'utility_mapping', 'environmental_assessment']],
-            ['stage' => 'concept', 'services' => ['master_plan_concept', 'zoning_diagram', 'plant_palette', 'hardscape_materials', 'water_features_concept', 'concept_sketches_landscape', 'client_presentations']],
-            ['stage' => 'design_development', 'services' => ['detailed_master_plan', 'planting_plan', 'irrigation_design', 'hardscape_layout', 'lighting_plan', 'grading_plan', 'drainage_design', 'water_features_design']],
-            ['stage' => 'visualization', 'services' => ['photorealistic_renderings_landscape', 'multiple_perspective_views', 'seasonal_views', 'material_boards', 'walkthrough_animation_landscape']],
-            ['stage' => 'construction_documents', 'services' => ['construction_drawings_landscape', 'planting_specifications', 'material_specifications_landscape', 'construction_details', 'irrigation_specifications', 'lighting_specifications_landscape', 'bill_of_quantities_landscape']],
-            ['stage' => 'tendering', 'services' => ['tender_documents_landscape', 'contractor_prequalification', 'bid_evaluation_landscape']],
-            ['stage' => 'implementation', 'services' => ['construction_supervision_landscape', 'plant_material_inspection', 'quality_control_landscape', 'progress_monitoring_landscape', 'snagging_landscape', 'maintenance_guidelines']],
-        ], $services, $stages);
-
-        // Fit-Out Design Package 1
-        $this->attachServicesToPackage($packages['fitout_pkg1'], [
-            ['stage' => 'briefing', 'services' => ['space_assessment', 'functional_requirements', 'budget_estimation', 'timeline_planning']],
-            ['stage' => 'design', 'services' => ['space_layout', 'finishes_selection', 'basic_furniture_layout', 'color_scheme']],
-            ['stage' => 'documentation', 'services' => ['floor_plans', 'reflected_ceiling_plans', 'finishes_schedule_fitout', 'basic_specifications']],
-        ], $services, $stages);
-
-        // Fit-Out Design Package 2
-        $this->attachServicesToPackage($packages['fitout_pkg2'], [
-            ['stage' => 'briefing', 'services' => ['detailed_space_assessment', 'functional_requirements', 'brand_guidelines_review', 'budget_estimation', 'timeline_planning']],
-            ['stage' => 'design', 'services' => ['space_layout', 'finishes_selection', 'furniture_layout_fitout', 'color_scheme', 'lighting_design_fitout', 'signage_design']],
-            ['stage' => 'technical_design', 'services' => ['mep_coordination', 'partition_details', 'door_schedule', 'ceiling_details']],
-            ['stage' => 'documentation', 'services' => ['construction_drawings_fitout', 'reflected_ceiling_plans', 'electrical_layouts', 'finishes_schedule_fitout', 'specifications', 'joinery_details_fitout']],
-            ['stage' => 'visualization', 'services' => ['3d_renderings_fitout', 'key_area_views']],
-            ['stage' => 'tendering', 'services' => ['tender_documents_fitout', 'bill_of_quantities_fitout', 'bid_analysis']],
-        ], $services, $stages);
-
-        // Fit-Out Design Package 3
-        $this->attachServicesToPackage($packages['fitout_pkg3'], [
-            ['stage' => 'briefing', 'services' => ['comprehensive_space_assessment', 'functional_requirements', 'brand_guidelines_review', 'workflow_analysis', 'budget_estimation', 'timeline_planning', 'stakeholder_consultation']],
-            ['stage' => 'design', 'services' => ['space_layout', 'finishes_selection', 'furniture_layout_fitout', 'custom_furniture_design_fitout', 'color_scheme', 'lighting_design_fitout', 'signage_design', 'branding_integration']],
-            ['stage' => 'technical_design', 'services' => ['mep_coordination', 'partition_details', 'door_schedule', 'ceiling_details', 'hvac_coordination', 'data_infrastructure', 'acoustic_design']],
-            ['stage' => 'documentation', 'services' => ['construction_drawings_fitout', 'reflected_ceiling_plans', 'electrical_layouts', 'mechanical_layouts', 'plumbing_layouts', 'finishes_schedule_fitout', 'specifications', 'joinery_details_fitout', 'door_hardware_schedule']],
-            ['stage' => 'visualization', 'services' => ['photorealistic_renderings_fitout', 'multiple_area_views', 'virtual_tour']],
-            ['stage' => 'tendering', 'services' => ['tender_documents_fitout', 'bill_of_quantities_fitout', 'bid_analysis', 'contractor_selection', 'furniture_procurement', 'equipment_procurement']],
-            ['stage' => 'implementation', 'services' => ['project_management', 'site_supervision_fitout', 'contractor_coordination_fitout', 'quality_control_fitout', 'progress_monitoring_fitout', 'change_management', 'snagging_fitout', 'handover_coordination']],
-            ['stage' => 'closeout', 'services' => ['final_inspection_closeout', 'as_built_drawings_closeout', 'operation_manuals', 'warranty_documentation_closeout', 'maintenance_guidelines_closeout', 'space_handbook']],
-        ], $services, $stages);
+        $this->command->info('Skipping service-to-package linking (services are now selected independently during project creation)');
     }
 
     /**

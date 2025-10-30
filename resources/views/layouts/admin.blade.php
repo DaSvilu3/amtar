@@ -40,7 +40,7 @@
         
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            background: #f8f9fa;
             min-height: 100vh;
         }
         
@@ -55,10 +55,11 @@
             left: 0;
             height: 100vh;
             width: var(--sidebar-width);
-            background: linear-gradient(180deg, var(--primary-color) 0%, var(--bg-dark) 100%);
+            background: #ffffff;
             transition: all 0.3s ease;
             z-index: 1000;
             box-shadow: 4px 0 10px rgba(0,0,0,0.1);
+            border-right: 1px solid #e0e0e0;
         }
         
         .sidebar.collapsed {
@@ -68,8 +69,8 @@
         .sidebar-header {
             padding: 20px;
             text-align: center;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            background: rgba(0,0,0,0.2);
+            border-bottom: 1px solid #e0e0e0;
+            background: #ffffff;
         }
         
         .sidebar-logo {
@@ -90,18 +91,21 @@
         }
         
         .menu-section {
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
-        
+
+        .menu-section:first-child {
+            margin-top: 10px;
+        }
+
         .menu-section-title {
-            color: var(--secondary-color);
-            font-size: 11px;
+            color: #a0aec0;
+            font-size: 10px;
             font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            padding: 0 20px;
-            margin-bottom: 10px;
-            opacity: 0.7;
+            letter-spacing: 1.5px;
+            padding: 20px 20px 10px 20px;
+            margin-bottom: 5px;
         }
         
         .sidebar.collapsed .menu-section-title {
@@ -115,24 +119,26 @@
         .menu-link {
             display: flex;
             align-items: center;
-            padding: 12px 20px;
-            color: var(--text-light);
+            padding: 14px 20px;
+            margin: 2px 10px;
+            color: #4a5568;
             text-decoration: none;
-            transition: all 0.3s ease;
-            border-left: 3px solid transparent;
+            transition: all 0.25s ease;
+            border-radius: 10px;
             position: relative;
             overflow: hidden;
         }
-        
+
         .menu-link:hover {
-            background: var(--hover-color);
-            border-left-color: var(--secondary-color);
-            color: var(--text-light);
+            background: #f7fafc;
+            color: var(--primary-color);
+            transform: translateX(5px);
         }
-        
+
         .menu-link.active {
-            background: var(--hover-color);
-            border-left-color: var(--secondary-color);
+            background: #f0f4f8;
+            border-left: 3px solid var(--secondary-color);
+            color: var(--primary-color);
         }
         
         .menu-link::before {
@@ -151,9 +157,15 @@
         }
         
         .menu-icon {
-            font-size: 18px;
-            width: 30px;
-            margin-right: 15px;
+            font-size: 16px;
+            width: 24px;
+            margin-right: 12px;
+            color: #718096;
+            text-align: center;
+        }
+
+        .menu-link:hover .menu-icon,
+        .menu-link.active .menu-icon {
             color: var(--secondary-color);
         }
         
@@ -162,8 +174,8 @@
         }
         
         .menu-text {
-            font-size: 14px;
-            font-weight: 500;
+            font-size: 13px;
+            font-weight: 400;
             transition: opacity 0.3s ease;
         }
         
@@ -365,17 +377,44 @@
         }
         
         .breadcrumb {
-            background: none;
+            background: transparent;
             padding: 0;
             margin: 0;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            list-style: none;
         }
-        
+
         .breadcrumb-item {
             font-size: 14px;
+            color: #718096;
+            display: flex;
+            align-items: center;
         }
-        
+
+        .breadcrumb-item a {
+            color: #4a5568;
+            text-decoration: none;
+            transition: color 0.2s ease;
+            font-weight: 400;
+        }
+
+        .breadcrumb-item a:hover {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        .breadcrumb-item + .breadcrumb-item::before {
+            content: '/';
+            padding: 0 10px;
+            color: #cbd5e0;
+            font-weight: 300;
+        }
+
         .breadcrumb-item.active {
-            color: var(--secondary-color);
+            color: var(--primary-color);
+            font-weight: 500;
         }
         
         /* Card Styles */
@@ -446,209 +485,97 @@
         <nav class="sidebar-menu">
             <!-- Main Menu -->
             <div class="menu-section">
-                <div class="menu-section-title">Main</div>
-                
                 <div class="menu-item">
                     <a href="/admin/dashboard" class="menu-link {{ request()->is('admin/dashboard') ? 'active' : '' }}">
                         <i class="fas fa-home menu-icon"></i>
                         <span class="menu-text">Dashboard</span>
                     </a>
                 </div>
-            </div>
-            
-            <!-- Services Section -->
-            <div class="menu-section">
-                <div class="menu-section-title">Services</div>
-                
-                <div class="menu-item">
-                    <a href="#" class="menu-link" onclick="toggleSubmenu(event, 'engineering-menu')">
-                        <i class="fas fa-hard-hat menu-icon"></i>
-                        <span class="menu-text">Engineering</span>
-                        <i class="fas fa-chevron-right menu-arrow"></i>
-                    </a>
-                    <div class="submenu" id="engineering-menu">
-                        <a href="/admin/engineering/consulting" class="menu-link">
-                            <i class="fas fa-lightbulb menu-icon"></i>
-                            <span class="menu-text">Consulting</span>
-                        </a>
-                        <a href="/admin/engineering/supervision" class="menu-link">
-                            <i class="fas fa-clipboard-check menu-icon"></i>
-                            <span class="menu-text">Supervision</span>
-                        </a>
-                    </div>
-                </div>
-                
-                <div class="menu-item">
-                    <a href="#" class="menu-link" onclick="toggleSubmenu(event, 'design-menu')">
-                        <i class="fas fa-palette menu-icon"></i>
-                        <span class="menu-text">Design</span>
-                        <i class="fas fa-chevron-right menu-arrow"></i>
-                    </a>
-                    <div class="submenu" id="design-menu">
-                        <a href="/admin/design/interiors" class="menu-link">
-                            <i class="fas fa-couch menu-icon"></i>
-                            <span class="menu-text">Interiors</span>
-                        </a>
-                        <a href="/admin/design/landscape" class="menu-link">
-                            <i class="fas fa-tree menu-icon"></i>
-                            <span class="menu-text">Landscape</span>
-                        </a>
-                        <a href="/admin/design/fitout" class="menu-link">
-                            <i class="fas fa-tools menu-icon"></i>
-                            <span class="menu-text">Fitout</span>
-                        </a>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Projects Section -->
-            <div class="menu-section">
-                <div class="menu-section-title">Projects</div>
 
                 <div class="menu-item">
-                    <a href="{{ route('admin.projects.index') }}" class="menu-link">
+                    <a href="{{ route('admin.projects.index') }}" class="menu-link {{ request()->is('admin/projects*') ? 'active' : '' }}">
                         <i class="fas fa-project-diagram menu-icon"></i>
-                        <span class="menu-text">All Projects</span>
-                        <span class="menu-badge">12</span>
+                        <span class="menu-text">Projects</span>
                     </a>
                 </div>
 
                 <div class="menu-item">
-                    <a href="/admin/tasks" class="menu-link">
-                        <i class="fas fa-tasks menu-icon"></i>
-                        <span class="menu-text">Tasks</span>
-                        <span class="menu-badge">5</span>
-                    </a>
-                </div>
-
-                <div class="menu-item">
-                    <a href="/admin/milestones" class="menu-link">
-                        <i class="fas fa-flag-checkered menu-icon"></i>
-                        <span class="menu-text">Milestones</span>
-                    </a>
-                </div>
-            </div>
-            
-            <!-- Clients Section -->
-            <div class="menu-section">
-                <div class="menu-section-title">Clients</div>
-
-                <div class="menu-item">
-                    <a href="{{ route('admin.clients.index') }}" class="menu-link">
+                    <a href="{{ route('admin.clients.index') }}" class="menu-link {{ request()->is('admin/clients*') ? 'active' : '' }}">
                         <i class="fas fa-users menu-icon"></i>
-                        <span class="menu-text">Client List</span>
+                        <span class="menu-text">Clients</span>
                     </a>
                 </div>
 
                 <div class="menu-item">
-                    <a href="{{ route('admin.contracts.index') }}" class="menu-link">
+                    <a href="{{ route('admin.contracts.index') }}" class="menu-link {{ request()->is('admin/contracts*') ? 'active' : '' }}">
                         <i class="fas fa-file-contract menu-icon"></i>
                         <span class="menu-text">Contracts</span>
                     </a>
                 </div>
 
                 <div class="menu-item">
-                    <a href="/admin/approvals" class="menu-link">
-                        <i class="fas fa-check-circle menu-icon"></i>
-                        <span class="menu-text">Approvals</span>
-                        <span class="menu-badge">3</span>
+                    <a href="{{ route('admin.files.index') }}" class="menu-link {{ request()->is('admin/files*') ? 'active' : '' }}">
+                        <i class="fas fa-folder menu-icon"></i>
+                        <span class="menu-text">Files</span>
                     </a>
                 </div>
             </div>
-            
-            <!-- Communication Section -->
+
+            <!-- Communication & Templates -->
             <div class="menu-section">
-                <div class="menu-section-title">Communication</div>
+                <div class="menu-section-title">Templates</div>
 
                 <div class="menu-item">
-                    <a href="{{ route('admin.notification-templates.index') }}" class="menu-link">
+                    <a href="{{ route('admin.notification-templates.index') }}" class="menu-link {{ request()->is('admin/notification-templates*') ? 'active' : '' }}">
                         <i class="fas fa-bell menu-icon"></i>
                         <span class="menu-text">Notifications</span>
                     </a>
                 </div>
 
                 <div class="menu-item">
-                    <a href="{{ route('admin.email-templates.index') }}" class="menu-link">
+                    <a href="{{ route('admin.email-templates.index') }}" class="menu-link {{ request()->is('admin/email-templates*') ? 'active' : '' }}">
                         <i class="fas fa-envelope menu-icon"></i>
-                        <span class="menu-text">Email Templates</span>
+                        <span class="menu-text">Emails</span>
                     </a>
                 </div>
 
                 <div class="menu-item">
-                    <a href="{{ route('admin.message-templates.index') }}" class="menu-link">
+                    <a href="{{ route('admin.message-templates.index') }}" class="menu-link {{ request()->is('admin/message-templates*') ? 'active' : '' }}">
                         <i class="fas fa-comments menu-icon"></i>
                         <span class="menu-text">Messages</span>
                     </a>
                 </div>
             </div>
 
-            <!-- Files Section -->
+            <!-- System -->
             <div class="menu-section">
-                <div class="menu-section-title">Files</div>
+                <div class="menu-section-title">System</div>
 
                 <div class="menu-item">
-                    <a href="{{ route('admin.files.index') }}" class="menu-link">
-                        <i class="fas fa-folder menu-icon"></i>
-                        <span class="menu-text">File Library</span>
-                    </a>
-                </div>
-            </div>
-
-            <!-- Reports Section -->
-            <div class="menu-section">
-                <div class="menu-section-title">Reports</div>
-
-                <div class="menu-item">
-                    <a href="/admin/analytics" class="menu-link">
-                        <i class="fas fa-chart-line menu-icon"></i>
-                        <span class="menu-text">Analytics</span>
-                    </a>
-                </div>
-
-                <div class="menu-item">
-                    <a href="/admin/reports" class="menu-link">
-                        <i class="fas fa-file-alt menu-icon"></i>
-                        <span class="menu-text">Reports</span>
-                    </a>
-                </div>
-            </div>
-
-            <!-- Settings Section -->
-            <div class="menu-section">
-                <div class="menu-section-title">Settings</div>
-
-                <div class="menu-item">
-                    <a href="{{ route('admin.users.index') }}" class="menu-link">
+                    <a href="{{ route('admin.users.index') }}" class="menu-link {{ request()->is('admin/users*') ? 'active' : '' }}">
                         <i class="fas fa-users-cog menu-icon"></i>
                         <span class="menu-text">Users</span>
                     </a>
                 </div>
 
                 <div class="menu-item">
-                    <a href="{{ route('admin.roles.index') }}" class="menu-link">
+                    <a href="{{ route('admin.roles.index') }}" class="menu-link {{ request()->is('admin/roles*') ? 'active' : '' }}">
                         <i class="fas fa-user-shield menu-icon"></i>
                         <span class="menu-text">Roles</span>
                     </a>
                 </div>
 
                 <div class="menu-item">
-                    <a href="{{ route('admin.document-types.index') }}" class="menu-link">
+                    <a href="{{ route('admin.document-types.index') }}" class="menu-link {{ request()->is('admin/document-types*') ? 'active' : '' }}">
                         <i class="fas fa-file-alt menu-icon"></i>
                         <span class="menu-text">Document Types</span>
                     </a>
                 </div>
 
                 <div class="menu-item">
-                    <a href="{{ route('admin.settings.index') }}" class="menu-link">
+                    <a href="{{ route('admin.settings.index') }}" class="menu-link {{ request()->is('admin/settings*') ? 'active' : '' }}">
                         <i class="fas fa-cog menu-icon"></i>
-                        <span class="menu-text">System Settings</span>
-                    </a>
-                </div>
-
-                <div class="menu-item">
-                    <a href="{{ route('admin.integrations.index') }}" class="menu-link">
-                        <i class="fas fa-plug menu-icon"></i>
-                        <span class="menu-text">Integrations</span>
+                        <span class="menu-text">Settings</span>
                     </a>
                 </div>
             </div>

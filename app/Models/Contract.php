@@ -70,4 +70,19 @@ class Contract extends Model
     {
         return $this->belongsTo(User::class, 'created_by');
     }
+
+    /**
+     * Get the project services through the project relationship.
+     */
+    public function projectServices()
+    {
+        return $this->hasManyThrough(
+            ProjectService::class,
+            Project::class,
+            'id',           // Foreign key on projects table
+            'project_id',   // Foreign key on project_services table
+            'project_id',   // Local key on contracts table
+            'id'            // Local key on projects table
+        );
+    }
 }

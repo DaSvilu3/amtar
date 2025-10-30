@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Contract;
 use App\Models\Client;
 use App\Models\Project;
+use App\Services\ContractTemplateService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -109,9 +110,93 @@ class ContractController extends Controller
         return redirect()->route('admin.contracts.index')->with('success', 'Contract deleted successfully.');
     }
 
-    public function print(Contract $contract)
+    public function print(Contract $contract, ContractTemplateService $templateService)
     {
+        // Check configuration to determine print method
+        $useDOCX = config('project.contract.use_docx_for_print', true);
+
+        if ($useDOCX) {
+            // Generate and download DOCX instead of HTML
+            try {
+                $filePath = $templateService->generateContract($contract, 'docx');
+                $filename = 'contract_' . $contract->contract_number . '.docx';
+
+                return $templateService->downloadContract($filePath, $filename);
+            } catch (\Exception $e) {
+                // Fallback to HTML view if DOCX generation fails
+                \Log::error('Contract DOCX generation failed, falling back to HTML', [
+                    'contract_id' => $contract->id,
+                    'error' => $e->getMessage()
+                ]);
+
+                $contract->load('client', 'project.projectManager', 'creator');
+                return view('admin.contracts.print', compact('contract'))
+                    ->with('warning', 'DOCX generation failed. Showing HTML version.');
+            }
+        }
+
+        // Use original HTML print view
         $contract->load('client', 'project.projectManager', 'creator');
         return view('admin.contracts.print', compact('contract'));
+    }
+
+    /**
+     * Generate and download contract as DOCX
+     *
+     * @param Contract $contract
+     * @param ContractTemplateService $templateService
+     * @return \Symfony\Component\HttpFoundation\BinaryFileResponse
+     */
+    public function downloadDocx(Contract $contract, ContractTemplateService $templateService)
+    {
+        try {
+            $filePath = $templateService->generateContract($contract, 'docx');
+            $filename = 'contract_' . $contract->contract_number . '.docx';
+
+            return $templateService->downloadContract($filePath, $filename);
+        } catch (\Exception $e) {
+            return redirect()->back()->withErrors(['error' => 'Failed to generate contract: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Generate and download contract as PDF
+     *
+     * @param Contract $contract
+     * @param ContractTemplateService $templateService
+     * @return \Symfony\Component\HttpFoundation\BinaryFileResponse
+     */
+    public function downloadPdf(Contract $contract, ContractTemplateService $templateService)
+    {
+        try {
+            $filePath = $templateService->generateContract($contract, 'pdf');
+            $filename = 'contract_' . $contract->contract_number . '.pdf';
+
+            return $templateService->downloadContract($filePath, $filename);
+        } catch (\Exception $e) {
+            return redirect()->back()->withErrors(['error' => 'Failed to generate PDF: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Preview contract (generate and display inline)
+     *
+     * @param Contract $contract
+     * @param ContractTemplateService $templateService
+     * @return \Symfony\Component\HttpFoundation\BinaryFileResponse
+     */
+    public function preview(Contract $contract, ContractTemplateService $templateService)
+    {
+        try {
+            $filePath = $templateService->generateContract($contract, 'docx');
+            $fullPath = storage_path('app/' . $filePath);
+
+            return response()->file($fullPath, [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'Content-Disposition' => 'inline; filename="contract_' . $contract->contract_number . '.docx"'
+            ]);
+        } catch (\Exception $e) {
+            return redirect()->back()->withErrors(['error' => 'Failed to preview contract: ' . $e->getMessage()]);
+        }
     }
 }

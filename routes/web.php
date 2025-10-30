@@ -119,6 +119,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::resource('projects', ProjectController::class);
     Route::resource('contracts', ContractController::class);
     Route::get('contracts/{contract}/print', [ContractController::class, 'print'])->name('contracts.print');
+    Route::get('contracts/{contract}/download-docx', [ContractController::class, 'downloadDocx'])->name('contracts.download-docx');
+    Route::get('contracts/{contract}/download-pdf', [ContractController::class, 'downloadPdf'])->name('contracts.download-pdf');
+    Route::get('contracts/{contract}/preview', [ContractController::class, 'preview'])->name('contracts.preview');
     Route::resource('document-types', DocumentTypeController::class);
 
     // API Routes for dynamic service loading
@@ -126,4 +129,5 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/api/services/packages', [ProjectController::class, 'getPackages'])->name('api.services.packages');
     Route::get('/api/services/package-services/{packageId}', [ProjectController::class, 'getPackageServices'])->name('api.services.package-services');
     Route::get('/api/services/all', [ProjectController::class, 'getAllServices'])->name('api.services.all');
+    Route::get('/api/services/stages', [ProjectController::class, 'getServiceStages'])->name('api.services.stages');
 });
