@@ -479,7 +479,7 @@
     <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <img src="/logo.jpg" alt="Amtar Logo" class="sidebar-logo">
+            <img src="/logo-no-backgreound.png" alt="Amtar Logo" class="sidebar-logo">
         </div>
         
         <nav class="sidebar-menu">
