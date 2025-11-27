@@ -471,8 +471,40 @@
         .fade-in {
             animation: fadeIn 0.5s ease;
         }
+
+        /* Pagination Styles */
+        .pagination {
+            margin-bottom: 0;
+        }
+
+        .pagination .page-item .page-link {
+            color: var(--primary-color);
+            border: 1px solid #dee2e6;
+            padding: 8px 14px;
+            margin: 0 2px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .pagination .page-item .page-link:hover {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+            color: var(--primary-color);
+        }
+
+        .pagination .page-item.active .page-link {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            color: white;
+        }
+
+        .pagination .page-item.disabled .page-link {
+            color: #6c757d;
+            background-color: #f8f9fa;
+            border-color: #dee2e6;
+        }
     </style>
-    
+
     @stack('styles')
 </head>
 <body>
@@ -517,6 +549,67 @@
                     <a href="{{ route('admin.files.index') }}" class="menu-link {{ request()->is('admin/files*') ? 'active' : '' }}">
                         <i class="fas fa-folder menu-icon"></i>
                         <span class="menu-text">Files</span>
+                    </a>
+                </div>
+
+                <div class="menu-item">
+                    <a href="{{ route('admin.tasks.index') }}" class="menu-link {{ request()->is('admin/tasks*') ? 'active' : '' }}">
+                        <i class="fas fa-tasks menu-icon"></i>
+                        <span class="menu-text">Tasks</span>
+                    </a>
+                </div>
+
+                <div class="menu-item">
+                    <a href="{{ route('admin.milestones.index') }}" class="menu-link {{ request()->is('admin/milestones*') ? 'active' : '' }}">
+                        <i class="fas fa-flag-checkered menu-icon"></i>
+                        <span class="menu-text">Milestones</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Services Management -->
+            <div class="menu-section">
+                <div class="menu-section-title">Services</div>
+
+                <div class="menu-item">
+                    <a href="{{ route('admin.services.index') }}" class="menu-link {{ request()->is('admin/services') ? 'active' : '' }}">
+                        <i class="fas fa-cogs menu-icon"></i>
+                        <span class="menu-text">Overview</span>
+                    </a>
+                </div>
+
+                <div class="menu-item">
+                    <a href="{{ route('admin.services.main.index') }}" class="menu-link {{ request()->is('admin/services/main*') ? 'active' : '' }}">
+                        <i class="fas fa-building menu-icon"></i>
+                        <span class="menu-text">Main Services</span>
+                    </a>
+                </div>
+
+                <div class="menu-item">
+                    <a href="{{ route('admin.services.sub.index') }}" class="menu-link {{ request()->is('admin/services/sub*') ? 'active' : '' }}">
+                        <i class="fas fa-code-branch menu-icon"></i>
+                        <span class="menu-text">Sub Services</span>
+                    </a>
+                </div>
+
+                <div class="menu-item">
+                    <a href="{{ route('admin.services.packages.index') }}" class="menu-link {{ request()->is('admin/services/packages*') ? 'active' : '' }}">
+                        <i class="fas fa-box menu-icon"></i>
+                        <span class="menu-text">Packages</span>
+                    </a>
+                </div>
+
+                <div class="menu-item">
+                    <a href="{{ route('admin.services.stages.index') }}" class="menu-link {{ request()->is('admin/services/stages*') ? 'active' : '' }}">
+                        <i class="fas fa-layer-group menu-icon"></i>
+                        <span class="menu-text">Stages</span>
+                    </a>
+                </div>
+
+                <div class="menu-item">
+                    <a href="{{ route('admin.services.services.index') }}" class="menu-link {{ request()->is('admin/services/services*') ? 'active' : '' }}">
+                        <i class="fas fa-wrench menu-icon"></i>
+                        <span class="menu-text">All Services</span>
                     </a>
                 </div>
             </div>

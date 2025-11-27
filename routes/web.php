@@ -14,6 +14,10 @@ use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\ProjectController;
 use App\Http\Controllers\Admin\ContractController;
 use App\Http\Controllers\Admin\DocumentTypeController;
+use App\Http\Controllers\Admin\TaskController;
+use App\Http\Controllers\Admin\MilestoneController;
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\ServiceManagementController;
 
 Route::get('/', function () {
     return redirect('/login');
@@ -24,38 +28,19 @@ Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.post');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-// Admin Routes (protected by auth middleware in production)
-Route::prefix('admin')->name('admin.')->group(function () {
+// Admin Routes (protected by auth middleware)
+Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () {
     // Dashboard
-    Route::get('/dashboard', function () {
-        return view('admin.dashboard');
-    })->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Multiple Dashboards
     Route::prefix('dashboards')->name('dashboards.')->group(function () {
-        Route::get('/finance', function () {
-            return view('admin.dashboards.finance');
-        })->name('finance');
-
-        Route::get('/projects', function () {
-            return view('admin.dashboards.projects');
-        })->name('projects');
-
-        Route::get('/services', function () {
-            return view('admin.dashboards.services');
-        })->name('services');
-
-        Route::get('/pipeline', function () {
-            return view('admin.dashboards.pipeline');
-        })->name('pipeline');
-
-        Route::get('/hr', function () {
-            return view('admin.dashboards.hr');
-        })->name('hr');
-
-        Route::get('/performance', function () {
-            return view('admin.dashboards.performance');
-        })->name('performance');
+        Route::get('/finance', [DashboardController::class, 'finance'])->name('finance');
+        Route::get('/projects', [DashboardController::class, 'projects'])->name('projects');
+        Route::get('/services', [DashboardController::class, 'services'])->name('services');
+        Route::get('/pipeline', [DashboardController::class, 'pipeline'])->name('pipeline');
+        Route::get('/hr', [DashboardController::class, 'hr'])->name('hr');
+        Route::get('/performance', [DashboardController::class, 'performance'])->name('performance');
     });
 
     // Engineering Services
@@ -84,14 +69,15 @@ Route::prefix('admin')->name('admin.')->group(function () {
         })->name('fitout');
     });
 
-    // Tasks & Milestones (existing simple routes)
-    Route::get('/tasks', function () {
-        return view('admin.tasks');
-    })->name('tasks');
+    // Tasks & Milestones
+    Route::resource('tasks', TaskController::class);
+    Route::patch('tasks/{task}/status', [TaskController::class, 'updateStatus'])->name('tasks.update-status');
+    Route::post('tasks/reorder', [TaskController::class, 'reorder'])->name('tasks.reorder');
+    Route::get('api/projects/{project}/tasks', [TaskController::class, 'getProjectTasks'])->name('api.projects.tasks');
 
-    Route::get('/milestones', function () {
-        return view('admin.milestones');
-    })->name('milestones');
+    Route::resource('milestones', MilestoneController::class);
+    Route::post('milestones/generate/{project}', [MilestoneController::class, 'generateFromProject'])->name('milestones.generate');
+    Route::get('api/projects/{project}/milestones', [MilestoneController::class, 'getProjectMilestones'])->name('api.projects.milestones');
 
     Route::get('/approvals', function () {
         return view('admin.approvals');
@@ -123,6 +109,53 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('contracts/{contract}/download-pdf', [ContractController::class, 'downloadPdf'])->name('contracts.download-pdf');
     Route::get('contracts/{contract}/preview', [ContractController::class, 'preview'])->name('contracts.preview');
     Route::resource('document-types', DocumentTypeController::class);
+
+    // Service Management Routes
+    Route::prefix('services')->name('services.')->group(function () {
+        // Overview
+        Route::get('/', [ServiceManagementController::class, 'index'])->name('index');
+
+        // Main Services
+        Route::get('/main', [ServiceManagementController::class, 'mainServicesIndex'])->name('main.index');
+        Route::get('/main/create', [ServiceManagementController::class, 'mainServicesCreate'])->name('main.create');
+        Route::post('/main', [ServiceManagementController::class, 'mainServicesStore'])->name('main.store');
+        Route::get('/main/{mainService}/edit', [ServiceManagementController::class, 'mainServicesEdit'])->name('main.edit');
+        Route::put('/main/{mainService}', [ServiceManagementController::class, 'mainServicesUpdate'])->name('main.update');
+        Route::delete('/main/{mainService}', [ServiceManagementController::class, 'mainServicesDestroy'])->name('main.destroy');
+
+        // Sub Services
+        Route::get('/sub', [ServiceManagementController::class, 'subServicesIndex'])->name('sub.index');
+        Route::get('/sub/create', [ServiceManagementController::class, 'subServicesCreate'])->name('sub.create');
+        Route::post('/sub', [ServiceManagementController::class, 'subServicesStore'])->name('sub.store');
+        Route::get('/sub/{subService}/edit', [ServiceManagementController::class, 'subServicesEdit'])->name('sub.edit');
+        Route::put('/sub/{subService}', [ServiceManagementController::class, 'subServicesUpdate'])->name('sub.update');
+        Route::delete('/sub/{subService}', [ServiceManagementController::class, 'subServicesDestroy'])->name('sub.destroy');
+
+        // Service Packages
+        Route::get('/packages', [ServiceManagementController::class, 'packagesIndex'])->name('packages.index');
+        Route::get('/packages/create', [ServiceManagementController::class, 'packagesCreate'])->name('packages.create');
+        Route::post('/packages', [ServiceManagementController::class, 'packagesStore'])->name('packages.store');
+        Route::get('/packages/{package}', [ServiceManagementController::class, 'packagesShow'])->name('packages.show');
+        Route::get('/packages/{package}/edit', [ServiceManagementController::class, 'packagesEdit'])->name('packages.edit');
+        Route::put('/packages/{package}', [ServiceManagementController::class, 'packagesUpdate'])->name('packages.update');
+        Route::delete('/packages/{package}', [ServiceManagementController::class, 'packagesDestroy'])->name('packages.destroy');
+
+        // Service Stages
+        Route::get('/stages', [ServiceManagementController::class, 'stagesIndex'])->name('stages.index');
+        Route::get('/stages/create', [ServiceManagementController::class, 'stagesCreate'])->name('stages.create');
+        Route::post('/stages', [ServiceManagementController::class, 'stagesStore'])->name('stages.store');
+        Route::get('/stages/{stage}/edit', [ServiceManagementController::class, 'stagesEdit'])->name('stages.edit');
+        Route::put('/stages/{stage}', [ServiceManagementController::class, 'stagesUpdate'])->name('stages.update');
+        Route::delete('/stages/{stage}', [ServiceManagementController::class, 'stagesDestroy'])->name('stages.destroy');
+
+        // Individual Services
+        Route::get('/services', [ServiceManagementController::class, 'servicesIndex'])->name('services.index');
+        Route::get('/services/create', [ServiceManagementController::class, 'servicesCreate'])->name('services.create');
+        Route::post('/services', [ServiceManagementController::class, 'servicesStore'])->name('services.store');
+        Route::get('/services/{service}/edit', [ServiceManagementController::class, 'servicesEdit'])->name('services.edit');
+        Route::put('/services/{service}', [ServiceManagementController::class, 'servicesUpdate'])->name('services.update');
+        Route::delete('/services/{service}', [ServiceManagementController::class, 'servicesDestroy'])->name('services.destroy');
+    });
 
     // API Routes for dynamic service loading
     Route::get('/api/services/sub-services/{mainServiceId}', [ProjectController::class, 'getSubServices'])->name('api.services.subservices');

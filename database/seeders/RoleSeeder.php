@@ -18,7 +18,7 @@ class RoleSeeder extends Seeder
                 'name' => 'Administrator',
                 'slug' => 'administrator',
                 'description' => 'Full system access with all permissions',
-                'permissions' => json_encode([
+                'permissions' => [
                     'users' => ['create', 'read', 'update', 'delete'],
                     'roles' => ['create', 'read', 'update', 'delete'],
                     'settings' => ['create', 'read', 'update', 'delete'],
@@ -30,53 +30,53 @@ class RoleSeeder extends Seeder
                     'clients' => ['create', 'read', 'update', 'delete'],
                     'projects' => ['create', 'read', 'update', 'delete'],
                     'contracts' => ['create', 'read', 'update', 'delete'],
-                ]),
+                ],
                 'is_active' => true,
             ],
             [
                 'name' => 'Project Manager',
                 'slug' => 'project-manager',
                 'description' => 'Can manage projects, clients, and contracts',
-                'permissions' => json_encode([
+                'permissions' => [
                     'files' => ['create', 'read', 'update'],
                     'clients' => ['create', 'read', 'update'],
                     'projects' => ['create', 'read', 'update', 'delete'],
                     'contracts' => ['create', 'read', 'update'],
-                ]),
+                ],
                 'is_active' => true,
             ],
             [
                 'name' => 'Engineer',
                 'slug' => 'engineer',
                 'description' => 'Can view projects and update tasks',
-                'permissions' => json_encode([
+                'permissions' => [
                     'files' => ['read', 'create'],
                     'clients' => ['read'],
                     'projects' => ['read', 'update'],
-                ]),
+                ],
                 'is_active' => true,
             ],
             [
                 'name' => 'Accountant',
                 'slug' => 'accountant',
                 'description' => 'Can manage contracts and view financial data',
-                'permissions' => json_encode([
+                'permissions' => [
                     'clients' => ['read'],
                     'projects' => ['read'],
                     'contracts' => ['create', 'read', 'update', 'delete'],
-                ]),
+                ],
                 'is_active' => true,
             ],
             [
                 'name' => 'Viewer',
                 'slug' => 'viewer',
                 'description' => 'Read-only access to most areas',
-                'permissions' => json_encode([
+                'permissions' => [
                     'files' => ['read'],
                     'clients' => ['read'],
                     'projects' => ['read'],
                     'contracts' => ['read'],
-                ]),
+                ],
                 'is_active' => true,
             ],
         ];

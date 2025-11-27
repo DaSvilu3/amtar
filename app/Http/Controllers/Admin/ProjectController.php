@@ -86,7 +86,11 @@ class ProjectController extends Controller
             'servicePackage',
             'services.service.serviceStage',
             'contracts',
-            'files.documentType'
+            'files.documentType',
+            'tasks.assignedTo',
+            'tasks.projectService.service',
+            'milestones.serviceStage',
+            'milestones.tasks'
         ]);
 
         return view('admin.projects.show', compact('project'));

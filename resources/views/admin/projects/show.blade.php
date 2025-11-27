@@ -39,8 +39,8 @@
                 <i class="fas fa-tasks"></i>
             </div>
             <div>
-                <div class="metric-label-compact">Progress</div>
-                <div class="metric-value-compact">{{ $project->progress ?? 0 }}%</div>
+                <div class="metric-label-compact">Tasks</div>
+                <div class="metric-value-compact">{{ $project->tasks->where('status', 'completed')->count() }}/{{ $project->tasks->count() }}</div>
             </div>
         </div>
         <div class="metric-item">
@@ -120,6 +120,18 @@
                 <button class="nav-link" id="contracts-tab" data-bs-toggle="tab" data-bs-target="#contracts" type="button" role="tab">
                     <i class="fas fa-file-contract me-2"></i>Contracts
                     <span class="tab-badge">{{ $project->contracts->count() }}</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="tasks-tab" data-bs-toggle="tab" data-bs-target="#tasks" type="button" role="tab">
+                    <i class="fas fa-tasks me-2"></i>Tasks
+                    <span class="tab-badge">{{ $project->tasks->count() }}</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="milestones-tab" data-bs-toggle="tab" data-bs-target="#milestones" type="button" role="tab">
+                    <i class="fas fa-flag me-2"></i>Milestones
+                    <span class="tab-badge">{{ $project->milestones->count() }}</span>
                 </button>
             </li>
             <li class="nav-item" role="presentation">
@@ -349,6 +361,189 @@
                         <div class="compact-card-body text-center text-muted py-5">
                             <i class="fas fa-file-contract fa-3x mb-3 opacity-25"></i>
                             <p class="mb-0">No contracts associated with this project.</p>
+                        </div>
+                    </div>
+                @endif
+            </div>
+
+            <!-- Tasks Tab -->
+            <div class="tab-pane fade" id="tasks" role="tabpanel">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        @php
+                            $completedTasks = $project->tasks->where('status', 'completed')->count();
+                            $totalTasks = $project->tasks->count();
+                            $taskProgress = $totalTasks > 0 ? round(($completedTasks / $totalTasks) * 100) : 0;
+                        @endphp
+                        <span class="text-muted">{{ $completedTasks }}/{{ $totalTasks }} completed ({{ $taskProgress }}%)</span>
+                    </div>
+                    <a href="{{ route('admin.tasks.create', ['project_id' => $project->id]) }}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus me-1"></i>Add Task
+                    </a>
+                </div>
+
+                @if($project->tasks->count() > 0)
+                    <div class="compact-card">
+                        <div class="compact-card-body p-0">
+                            <div class="task-list-compact">
+                                @foreach($project->tasks->sortBy('sort_order') as $task)
+                                    <a href="{{ route('admin.tasks.show', $task) }}" class="task-list-item">
+                                        <div class="task-checkbox-compact">
+                                            @if($task->status === 'completed')
+                                                <i class="fas fa-check-circle text-success"></i>
+                                            @elseif($task->status === 'in_progress')
+                                                <i class="fas fa-spinner text-primary"></i>
+                                            @elseif($task->status === 'review')
+                                                <i class="fas fa-eye text-warning"></i>
+                                            @else
+                                                <i class="far fa-circle text-muted"></i>
+                                            @endif
+                                        </div>
+                                        <div class="task-details-compact">
+                                            <div class="task-title-compact">{{ $task->title }}</div>
+                                            <div class="task-meta-compact">
+                                                @if($task->projectService)
+                                                    <span><i class="fas fa-cog"></i> {{ $task->projectService->service->name ?? '' }}</span>
+                                                @endif
+                                                @if($task->assignedTo)
+                                                    <span><i class="fas fa-user"></i> {{ $task->assignedTo->name }}</span>
+                                                @endif
+                                                @if($task->due_date)
+                                                    <span class="{{ $task->isOverdue() ? 'text-danger' : '' }}">
+                                                        <i class="fas fa-clock"></i> {{ $task->due_date->format('M d') }}
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        </div>
+                                        <div class="task-badges-compact">
+                                            <span class="mini-badge badge-priority-{{ $task->priority }}">
+                                                {{ ucfirst($task->priority) }}
+                                            </span>
+                                            <span class="mini-badge badge-status-{{ $task->status }}">
+                                                {{ ucfirst(str_replace('_', ' ', $task->status)) }}
+                                            </span>
+                                        </div>
+                                        <i class="fas fa-chevron-right text-muted"></i>
+                                    </a>
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
+                @else
+                    <div class="compact-card">
+                        <div class="compact-card-body text-center text-muted py-5">
+                            <i class="fas fa-tasks fa-3x mb-3 opacity-25"></i>
+                            <p class="mb-0">No tasks for this project yet.</p>
+                            <a href="{{ route('admin.tasks.create', ['project_id' => $project->id]) }}" class="btn btn-outline-primary btn-sm mt-3">
+                                <i class="fas fa-plus me-1"></i>Create First Task
+                            </a>
+                        </div>
+                    </div>
+                @endif
+            </div>
+
+            <!-- Milestones Tab -->
+            <div class="tab-pane fade" id="milestones" role="tabpanel">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        @php
+                            $completedMilestones = $project->milestones->where('status', 'completed')->count();
+                            $totalMilestones = $project->milestones->count();
+                        @endphp
+                        <span class="text-muted">{{ $completedMilestones }}/{{ $totalMilestones }} completed</span>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <form action="{{ route('admin.milestones.generate', $project) }}" method="POST" class="d-inline">
+                            @csrf
+                            <button type="submit" class="btn btn-outline-secondary btn-sm" title="Auto-generate from service stages">
+                                <i class="fas fa-magic me-1"></i>Auto Generate
+                            </button>
+                        </form>
+                        <a href="{{ route('admin.milestones.create', ['project_id' => $project->id]) }}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-plus me-1"></i>Add Milestone
+                        </a>
+                    </div>
+                </div>
+
+                @if($project->milestones->count() > 0)
+                    <div class="row g-3">
+                        @foreach($project->milestones->sortBy('sort_order') as $milestone)
+                            <div class="col-md-6">
+                                <div class="compact-card milestone-card">
+                                    <div class="compact-card-header d-flex justify-content-between align-items-center">
+                                        <span>
+                                            @if($milestone->status === 'completed')
+                                                <i class="fas fa-check-circle text-success me-2"></i>
+                                            @elseif($milestone->status === 'in_progress')
+                                                <i class="fas fa-spinner text-primary me-2"></i>
+                                            @elseif($milestone->status === 'overdue')
+                                                <i class="fas fa-exclamation-circle text-danger me-2"></i>
+                                            @else
+                                                <i class="fas fa-flag text-secondary me-2"></i>
+                                            @endif
+                                            {{ $milestone->title }}
+                                        </span>
+                                        <span class="mini-badge bg-{{ $milestone->status === 'completed' ? 'success' : ($milestone->status === 'in_progress' ? 'primary' : ($milestone->status === 'overdue' ? 'danger' : 'secondary')) }}">
+                                            {{ ucfirst(str_replace('_', ' ', $milestone->status)) }}
+                                        </span>
+                                    </div>
+                                    <div class="compact-card-body">
+                                        @if($milestone->serviceStage)
+                                            <div class="mb-2">
+                                                <span class="mini-badge bg-light text-dark">
+                                                    <i class="fas fa-layer-group me-1"></i>{{ $milestone->serviceStage->name }}
+                                                </span>
+                                            </div>
+                                        @endif
+
+                                        @php $progress = $milestone->calculateProgress(); @endphp
+                                        <div class="progress mb-2" style="height: 6px;">
+                                            <div class="progress-bar bg-{{ $milestone->status === 'completed' ? 'success' : 'primary' }}"
+                                                 style="width: {{ $progress }}%"></div>
+                                        </div>
+                                        <div class="d-flex justify-content-between text-muted small">
+                                            <span>{{ $milestone->tasks->count() }} tasks</span>
+                                            <span>{{ $progress }}% complete</span>
+                                        </div>
+
+                                        <div class="d-flex justify-content-between align-items-center mt-3">
+                                            <div class="small text-muted">
+                                                @if($milestone->target_date)
+                                                    <i class="fas fa-calendar me-1"></i>
+                                                    <span class="{{ $milestone->isOverdue() ? 'text-danger fw-bold' : '' }}">
+                                                        {{ $milestone->target_date->format('M d, Y') }}
+                                                    </span>
+                                                @endif
+                                                @if($milestone->payment_percentage)
+                                                    <span class="ms-2"><i class="fas fa-percent me-1"></i>{{ $milestone->payment_percentage }}%</span>
+                                                @endif
+                                            </div>
+                                            <a href="{{ route('admin.milestones.show', $milestone) }}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    <div class="compact-card">
+                        <div class="compact-card-body text-center text-muted py-5">
+                            <i class="fas fa-flag fa-3x mb-3 opacity-25"></i>
+                            <p class="mb-0">No milestones for this project yet.</p>
+                            <div class="mt-3">
+                                <form action="{{ route('admin.milestones.generate', $project) }}" method="POST" class="d-inline">
+                                    @csrf
+                                    <button type="submit" class="btn btn-outline-secondary btn-sm">
+                                        <i class="fas fa-magic me-1"></i>Auto Generate from Stages
+                                    </button>
+                                </form>
+                                <span class="text-muted mx-2">or</span>
+                                <a href="{{ route('admin.milestones.create', ['project_id' => $project->id]) }}" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-plus me-1"></i>Create Manually
+                                </a>
+                            </div>
                         </div>
                     </div>
                 @endif
@@ -820,6 +1015,86 @@
     .contract-meta-compact {
         display: flex;
         gap: 6px;
+    }
+
+    /* Task List Compact */
+    .task-list-compact {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .task-list-item {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 15px 18px;
+        border-bottom: 1px solid #f0f0f0;
+        text-decoration: none;
+        transition: background 0.2s ease;
+    }
+
+    .task-list-item:hover {
+        background: #f8f9fa;
+    }
+
+    .task-list-item:last-child {
+        border-bottom: none;
+    }
+
+    .task-checkbox-compact {
+        font-size: 18px;
+        width: 24px;
+        text-align: center;
+    }
+
+    .task-details-compact {
+        flex: 1;
+    }
+
+    .task-title-compact {
+        font-weight: 500;
+        color: var(--primary-color);
+        font-size: 14px;
+        margin-bottom: 4px;
+    }
+
+    .task-meta-compact {
+        display: flex;
+        gap: 12px;
+        font-size: 11px;
+        color: #6c757d;
+    }
+
+    .task-meta-compact i {
+        margin-right: 3px;
+    }
+
+    .task-badges-compact {
+        display: flex;
+        gap: 6px;
+    }
+
+    /* Priority badges */
+    .badge-priority-low { background: #e8f5e9; color: #388e3c; }
+    .badge-priority-medium { background: #fff3e0; color: #f57c00; }
+    .badge-priority-high { background: #ffebee; color: #c62828; }
+    .badge-priority-urgent { background: #c62828; color: white; }
+
+    /* Status badges */
+    .badge-status-pending { background: #e0e0e0; color: #616161; }
+    .badge-status-in_progress { background: #e3f2fd; color: #1976d2; }
+    .badge-status-review { background: #fff8e1; color: #f57c00; }
+    .badge-status-completed { background: #e8f5e9; color: #388e3c; }
+    .badge-status-cancelled { background: #ffebee; color: #c62828; }
+
+    /* Milestone Card */
+    .milestone-card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .milestone-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
 
     /* Timeline Compact */

@@ -118,4 +118,34 @@ class Project extends Model
     {
         return $this->files();
     }
+
+    /**
+     * Get the tasks for the project.
+     */
+    public function tasks()
+    {
+        return $this->hasMany(Task::class);
+    }
+
+    /**
+     * Get the milestones for the project.
+     */
+    public function milestones()
+    {
+        return $this->hasMany(Milestone::class);
+    }
+
+    /**
+     * Calculate overall project progress based on tasks.
+     */
+    public function calculateTaskProgress(): int
+    {
+        $totalTasks = $this->tasks()->count();
+        if ($totalTasks === 0) {
+            return $this->progress ?? 0;
+        }
+
+        $completedTasks = $this->tasks()->where('status', 'completed')->count();
+        return (int) round(($completedTasks / $totalTasks) * 100);
+    }
 }

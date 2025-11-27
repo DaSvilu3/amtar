@@ -59,4 +59,12 @@ class ProjectService extends Model
     {
         return $this->belongsTo(ServiceStage::class);
     }
+
+    /**
+     * Get the tasks associated with this project service.
+     */
+    public function tasks()
+    {
+        return $this->hasMany(Task::class);
+    }
 }

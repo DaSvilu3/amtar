@@ -91,11 +91,14 @@
                     @php
                         $permissions = [];
                         foreach($user->roles ?? [] as $role) {
-                            foreach($role->permissions ?? [] as $permission) {
-                                $permissions[] = $permission;
+                            foreach($role->permissions ?? [] as $resource => $actions) {
+                                foreach((array) $actions as $action) {
+                                    $permissions[] = ucfirst($resource) . ': ' . ucfirst($action);
+                                }
                             }
                         }
                         $permissions = array_unique($permissions);
+                        sort($permissions);
                     @endphp
 
                     @forelse($permissions as $permission)

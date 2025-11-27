@@ -83,4 +83,79 @@ class User extends Authenticatable
     {
         return $this->hasMany(Contract::class, 'created_by');
     }
+
+    /**
+     * Get the tasks assigned to the user.
+     */
+    public function assignedTasks()
+    {
+        return $this->hasMany(Task::class, 'assigned_to');
+    }
+
+    /**
+     * Get the tasks created by the user.
+     */
+    public function createdTasks()
+    {
+        return $this->hasMany(Task::class, 'created_by');
+    }
+
+    /**
+     * Check if user has a specific role.
+     */
+    public function hasRole(string $role): bool
+    {
+        return $this->roles()->where('slug', $role)->exists();
+    }
+
+    /**
+     * Check if user has any of the given roles.
+     */
+    public function hasAnyRole(array $roles): bool
+    {
+        return $this->roles()->whereIn('slug', $roles)->exists();
+    }
+
+    /**
+     * Check if user has a specific permission.
+     */
+    public function hasPermission(string $permission): bool
+    {
+        foreach ($this->roles as $role) {
+            if (is_array($role->permissions) && in_array($permission, $role->permissions)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Get all permissions for the user.
+     */
+    public function getAllPermissions(): array
+    {
+        $permissions = [];
+        foreach ($this->roles as $role) {
+            if (is_array($role->permissions)) {
+                $permissions = array_merge($permissions, $role->permissions);
+            }
+        }
+        return array_unique($permissions);
+    }
+
+    /**
+     * Check if user is an admin.
+     */
+    public function isAdmin(): bool
+    {
+        return $this->hasRole('admin');
+    }
+
+    /**
+     * Check if user is a project manager.
+     */
+    public function isProjectManager(): bool
+    {
+        return $this->hasRole('project-manager');
+    }
 }
