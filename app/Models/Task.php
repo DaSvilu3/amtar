@@ -10,7 +10,9 @@ class Task extends Model
         'project_id',
         'project_service_id',
         'milestone_id',
+        'task_template_id',
         'assigned_to',
+        'reviewed_by',
         'created_by',
         'title',
         'description',
@@ -19,9 +21,12 @@ class Task extends Model
         'start_date',
         'due_date',
         'completed_at',
+        'reviewed_at',
+        'review_notes',
         'estimated_hours',
         'actual_hours',
         'progress',
+        'requires_review',
         'sort_order',
     ];
 
@@ -31,6 +36,8 @@ class Task extends Model
             'start_date' => 'date',
             'due_date' => 'date',
             'completed_at' => 'date',
+            'reviewed_at' => 'datetime',
+            'requires_review' => 'boolean',
         ];
     }
 
@@ -72,6 +79,22 @@ class Task extends Model
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Get the user who reviewed this task.
+     */
+    public function reviewedBy()
+    {
+        return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
+    /**
+     * Get the task template this task was created from.
+     */
+    public function taskTemplate()
+    {
+        return $this->belongsTo(TaskTemplate::class);
     }
 
     /**
@@ -176,5 +199,65 @@ class Task extends Model
     public function scopeHighPriority($query)
     {
         return $query->whereIn('priority', ['high', 'urgent']);
+    }
+
+    /**
+     * Scope for tasks requiring review.
+     */
+    public function scopeRequiresReview($query)
+    {
+        return $query->where('requires_review', true)
+            ->where('status', 'review');
+    }
+
+    /**
+     * Scope for tasks pending review by a specific user.
+     */
+    public function scopePendingReviewBy($query, $userId)
+    {
+        return $query->where('reviewed_by', $userId)
+            ->where('status', 'review')
+            ->whereNull('reviewed_at');
+    }
+
+    /**
+     * Submit task for review.
+     */
+    public function submitForReview(?int $reviewerId = null): bool
+    {
+        $this->status = 'review';
+        if ($reviewerId) {
+            $this->reviewed_by = $reviewerId;
+        }
+        return $this->save();
+    }
+
+    /**
+     * Approve the task after review.
+     */
+    public function approveReview(?string $notes = null): bool
+    {
+        $this->reviewed_at = now();
+        $this->review_notes = $notes;
+        return $this->markComplete();
+    }
+
+    /**
+     * Reject the task and send back for revision.
+     */
+    public function rejectReview(string $notes): bool
+    {
+        $this->status = 'in_progress';
+        $this->reviewed_at = now();
+        $this->review_notes = $notes;
+        return $this->save();
+    }
+
+    /**
+     * Check if task needs review before completion.
+     */
+    public function needsReview(): bool
+    {
+        return $this->requires_review && $this->status !== 'completed' && !$this->reviewed_at;
     }
 }

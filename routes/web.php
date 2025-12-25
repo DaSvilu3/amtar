@@ -75,6 +75,15 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
     Route::post('tasks/reorder', [TaskController::class, 'reorder'])->name('tasks.reorder');
     Route::get('api/projects/{project}/tasks', [TaskController::class, 'getProjectTasks'])->name('api.projects.tasks');
 
+    // Task Assignment & Review Routes
+    Route::get('tasks/{task}/suggestions', [TaskController::class, 'getAssignmentSuggestions'])->name('tasks.suggestions');
+    Route::post('tasks/{task}/auto-assign', [TaskController::class, 'autoAssign'])->name('tasks.auto-assign');
+    Route::post('projects/{project}/tasks/generate', [TaskController::class, 'generateFromTemplates'])->name('tasks.generate');
+    Route::post('tasks/{task}/submit-review', [TaskController::class, 'submitForReview'])->name('tasks.submit-review');
+    Route::post('tasks/{task}/approve', [TaskController::class, 'approveReview'])->name('tasks.approve');
+    Route::post('tasks/{task}/reject', [TaskController::class, 'rejectReview'])->name('tasks.reject');
+    Route::get('tasks/pending-reviews', [TaskController::class, 'pendingReviews'])->name('tasks.pending-reviews');
+
     Route::resource('milestones', MilestoneController::class);
     Route::post('milestones/generate/{project}', [MilestoneController::class, 'generateFromProject'])->name('milestones.generate');
     Route::get('api/projects/{project}/milestones', [MilestoneController::class, 'getProjectMilestones'])->name('api.projects.milestones');

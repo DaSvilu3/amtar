@@ -4,15 +4,24 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Task;
+use App\Models\TaskTemplate;
 use App\Models\Project;
 use App\Models\ProjectService;
 use App\Models\Milestone;
 use App\Models\User;
+use App\Services\TaskAssignmentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class TaskController extends Controller
 {
+    protected TaskAssignmentService $assignmentService;
+
+    public function __construct(TaskAssignmentService $assignmentService)
+    {
+        $this->assignmentService = $assignmentService;
+    }
+
     public function index(Request $request)
     {
         $query = Task::with(['project', 'assignedTo', 'projectService.service', 'milestone']);
@@ -226,5 +235,155 @@ class TaskController extends Controller
             ->get();
 
         return response()->json($tasks);
+    }
+
+    /**
+     * Get assignment suggestions for a task.
+     */
+    public function getAssignmentSuggestions(Task $task)
+    {
+        $suggestions = $this->assignmentService->getAssignmentSuggestions($task);
+
+        return response()->json([
+            'success' => true,
+            'suggestions' => $suggestions->map(function ($suggestion) {
+                return [
+                    'user_id' => $suggestion['user']->id,
+                    'user_name' => $suggestion['user']->name,
+                    'user_email' => $suggestion['user']->email,
+                    'score' => round($suggestion['score'], 2),
+                    'available_hours' => $suggestion['available_hours'],
+                    'current_workload' => $suggestion['current_workload'],
+                    'matching_skills' => $suggestion['matching_skills']->pluck('name'),
+                ];
+            }),
+        ]);
+    }
+
+    /**
+     * Auto-assign a task to the best available consultant.
+     */
+    public function autoAssign(Task $task)
+    {
+        $success = $this->assignmentService->autoAssign($task);
+
+        if ($success) {
+            $task->load('assignedTo', 'reviewedBy');
+            return response()->json([
+                'success' => true,
+                'message' => 'Task assigned successfully.',
+                'task' => $task,
+                'assigned_to' => $task->assignedTo?->name,
+                'reviewed_by' => $task->reviewedBy?->name,
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'No suitable consultant found for this task.',
+        ], 422);
+    }
+
+    /**
+     * Generate tasks from templates for a project service.
+     */
+    public function generateFromTemplates(Request $request, Project $project)
+    {
+        $validated = $request->validate([
+            'project_service_id' => 'required|exists:project_services,id',
+            'milestone_id' => 'nullable|exists:milestones,id',
+            'auto_assign' => 'boolean',
+        ]);
+
+        $projectService = ProjectService::findOrFail($validated['project_service_id']);
+        $milestone = isset($validated['milestone_id']) ? Milestone::find($validated['milestone_id']) : null;
+        $autoAssign = $validated['auto_assign'] ?? true;
+
+        $tasks = $this->assignmentService->generateTasksFromTemplates(
+            $project,
+            $projectService,
+            $milestone,
+            $autoAssign
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => $tasks->count() . ' tasks generated successfully.',
+            'tasks' => $tasks->load('assignedTo', 'reviewedBy'),
+        ]);
+    }
+
+    /**
+     * Submit task for review.
+     */
+    public function submitForReview(Request $request, Task $task)
+    {
+        $validated = $request->validate([
+            'reviewed_by' => 'nullable|exists:users,id',
+        ]);
+
+        // Find a reviewer if not specified
+        $reviewerId = $validated['reviewed_by'] ?? null;
+        if (!$reviewerId && $task->requires_review) {
+            $reviewer = $this->assignmentService->findBestReviewer($task);
+            $reviewerId = $reviewer?->id;
+        }
+
+        $task->submitForReview($reviewerId);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Task submitted for review.',
+            'task' => $task->load('reviewedBy'),
+        ]);
+    }
+
+    /**
+     * Approve a task after review.
+     */
+    public function approveReview(Request $request, Task $task)
+    {
+        $validated = $request->validate([
+            'notes' => 'nullable|string|max:1000',
+        ]);
+
+        $task->approveReview($validated['notes'] ?? null);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Task approved and completed.',
+            'task' => $task,
+        ]);
+    }
+
+    /**
+     * Reject a task and send back for revision.
+     */
+    public function rejectReview(Request $request, Task $task)
+    {
+        $validated = $request->validate([
+            'notes' => 'required|string|max:1000',
+        ]);
+
+        $task->rejectReview($validated['notes']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Task sent back for revision.',
+            'task' => $task,
+        ]);
+    }
+
+    /**
+     * Get tasks pending review for current user.
+     */
+    public function pendingReviews(Request $request)
+    {
+        $tasks = Task::with(['project', 'assignedTo', 'projectService.service'])
+            ->pendingReviewBy(Auth::id())
+            ->orderBy('due_date')
+            ->paginate(20);
+
+        return view('admin.tasks.pending-reviews', compact('tasks'));
     }
 }
