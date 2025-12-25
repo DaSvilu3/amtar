@@ -14,6 +14,9 @@ use App\Models\SubService;
 use App\Models\ServicePackage;
 use App\Models\Service;
 use App\Models\Contract;
+use App\Models\TaskTemplate;
+use App\Models\Skill;
+use App\Services\TaskAssignmentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -21,10 +24,54 @@ use Illuminate\Support\Facades\DB;
 
 class ProjectController extends Controller
 {
-    public function index()
+    protected TaskAssignmentService $taskAssignmentService;
+
+    public function __construct(TaskAssignmentService $taskAssignmentService)
     {
-        $items = Project::with('client', 'projectManager')->orderBy('created_at', 'desc')->paginate(20);
-        return view('admin.projects.index', compact('items'));
+        $this->taskAssignmentService = $taskAssignmentService;
+    }
+
+    public function index(Request $request)
+    {
+        $query = Project::with('client', 'projectManager');
+
+        // Search filter
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('project_number', 'like', "%{$search}%")
+                  ->orWhereHas('client', fn($q) => $q->where('name', 'like', "%{$search}%"));
+            });
+        }
+
+        // Status filter
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        // Client filter
+        if ($request->filled('client_id')) {
+            $query->where('client_id', $request->client_id);
+        }
+
+        // Project Manager filter
+        if ($request->filled('pm_id')) {
+            $query->where('project_manager_id', $request->pm_id);
+        }
+
+        $items = $query->orderBy('created_at', 'desc')->paginate(20)->withQueryString();
+
+        // Get filter options
+        $clients = Client::where('status', 'active')->orderBy('name')->get();
+        $projectManagers = User::whereHas('roles', fn($q) => $q->whereIn('slug', ['administrator', 'project-manager']))
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
+        $statuses = ['pending', 'in_progress', 'on_hold', 'completed', 'cancelled'];
+
+        return view('admin.projects.index', compact('items', 'clients', 'projectManagers', 'statuses'));
     }
 
     public function create()
@@ -66,6 +113,15 @@ class ProjectController extends Controller
                 $message = 'Project and contract created successfully.';
             } else {
                 $message = 'Project created successfully.';
+            }
+
+            // Generate tasks if requested
+            $tasksGenerated = 0;
+            if ($request->boolean('auto_generate_tasks', false)) {
+                $tasksGenerated = $this->generateProjectTasks($project, $request);
+                if ($tasksGenerated > 0) {
+                    $message .= " {$tasksGenerated} tasks generated.";
+                }
             }
 
             DB::commit();
@@ -501,5 +557,132 @@ class ProjectController extends Controller
         }
 
         return $rules;
+    }
+
+    /**
+     * Generate tasks from templates for project services
+     */
+    private function generateProjectTasks(Project $project, Request $request): int
+    {
+        $autoAssign = $request->boolean('auto_assign_tasks', true);
+        $selectedTemplates = $request->input('selected_templates', []);
+        $tasksCreated = 0;
+
+        // Get project services
+        $projectServices = ProjectService::where('project_id', $project->id)
+            ->with('service')
+            ->get();
+
+        foreach ($projectServices as $projectService) {
+            // Get templates for this service
+            $templateQuery = TaskTemplate::where('service_id', $projectService->service_id)
+                ->where('is_active', true)
+                ->orderBy('sort_order');
+
+            // Filter by selected templates if specified
+            if (!empty($selectedTemplates)) {
+                $templateQuery->whereIn('id', $selectedTemplates);
+            }
+
+            $tasks = $this->taskAssignmentService->generateTasksFromTemplates(
+                $project,
+                $projectService,
+                null,
+                $autoAssign
+            );
+
+            $tasksCreated += $tasks->count();
+        }
+
+        return $tasksCreated;
+    }
+
+    /**
+     * API endpoint to get task templates preview for selected services
+     */
+    public function getTaskTemplatesPreview(Request $request)
+    {
+        $serviceIds = $request->input('service_ids', []);
+
+        if (empty($serviceIds)) {
+            return response()->json(['templates' => []]);
+        }
+
+        $templates = TaskTemplate::whereIn('service_id', $serviceIds)
+            ->where('is_active', true)
+            ->with(['service.serviceStage', 'skills'])
+            ->orderBy('sort_order')
+            ->get();
+
+        $templatesData = $templates->map(function ($template) {
+            // Get suggested assignee preview
+            $suggestedAssignee = $this->getSuggestedAssigneePreview($template);
+
+            return [
+                'id' => $template->id,
+                'title' => $template->title,
+                'description' => $template->description,
+                'priority' => $template->priority ?? 'medium',
+                'estimated_hours' => $template->estimated_hours,
+                'requires_review' => $template->requires_review ?? false,
+                'stage_name' => $template->service?->serviceStage?->name ?? 'Other',
+                'service_name' => $template->service?->name,
+                'required_skills' => $template->skills?->pluck('name')->toArray() ?? [],
+                'suggested_assignee' => $suggestedAssignee,
+            ];
+        });
+
+        return response()->json([
+            'templates' => $templatesData,
+            'total_count' => $templates->count(),
+            'total_hours' => $templates->sum('estimated_hours'),
+        ]);
+    }
+
+    /**
+     * Get a preview of the suggested assignee for a template
+     */
+    private function getSuggestedAssigneePreview(TaskTemplate $template): ?array
+    {
+        // Get users with matching skills
+        $query = \App\Models\User::where('is_active', true);
+
+        // Check for required skills
+        if ($template->skills && $template->skills->isNotEmpty()) {
+            $skillIds = $template->skills->pluck('id')->toArray();
+            $query->whereHas('skills', function ($q) use ($skillIds) {
+                $q->whereIn('skills.id', $skillIds);
+            });
+        }
+
+        // Check for service stage
+        if ($template->service?->service_stage_id) {
+            $stageId = $template->service->service_stage_id;
+            $query->whereHas('serviceStages', function ($q) use ($stageId) {
+                $q->where('service_stages.id', $stageId);
+            });
+        }
+
+        $candidates = $query->limit(5)->get();
+
+        if ($candidates->isEmpty()) {
+            return null;
+        }
+
+        // Return the first match with a score estimate
+        $bestMatch = $candidates->first();
+        $matchingSkillsCount = $template->skills
+            ? $bestMatch->skills->whereIn('id', $template->skills->pluck('id'))->count()
+            : 0;
+        $requiredSkillsCount = $template->skills?->count() ?? 0;
+        $score = $requiredSkillsCount > 0
+            ? $matchingSkillsCount / $requiredSkillsCount
+            : 0.5;
+
+        return [
+            'id' => $bestMatch->id,
+            'name' => $bestMatch->name,
+            'score' => $score,
+        ];
     }
 }

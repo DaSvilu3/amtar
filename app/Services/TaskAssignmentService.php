@@ -101,13 +101,7 @@ class TaskAssignmentService
     protected function calculateAssignmentScore(User $user, Task $task, array $options = []): float
     {
         $score = 0;
-        $weights = $options['weights'] ?? [
-            'skill_match' => 30,
-            'expertise_level' => 25,
-            'availability' => 20,
-            'workload' => 15,
-            'experience' => 10,
-        ];
+        $weights = $this->getWeights($options);
 
         // Skill match score
         $score += $this->calculateSkillMatchScore($user, $task) * $weights['skill_match'];
@@ -124,7 +118,96 @@ class TaskAssignmentService
         // Experience score (years of experience in relevant skills)
         $score += $this->calculateExperienceScore($user, $task) * $weights['experience'];
 
+        // Urgency score (priority and deadline proximity)
+        $score += $this->calculateUrgencyScore($task) * $weights['urgency'];
+
         return $score;
+    }
+
+    /**
+     * Get scoring weights from settings or defaults.
+     */
+    protected function getWeights(array $options = []): array
+    {
+        $defaultWeights = [
+            'skill_match' => 25,
+            'expertise_level' => 20,
+            'availability' => 20,
+            'workload' => 15,
+            'experience' => 10,
+            'urgency' => 10,
+        ];
+
+        // Try to get from options first
+        if (!empty($options['weights'])) {
+            return $this->normalizeWeights(array_merge($defaultWeights, $options['weights']));
+        }
+
+        // Try to get from settings
+        try {
+            $setting = \App\Models\Setting::where('key', 'task_assignment.weights')->first();
+            if ($setting && $setting->value) {
+                $settingsWeights = json_decode($setting->value, true);
+                if ($settingsWeights) {
+                    return $this->normalizeWeights(array_merge($defaultWeights, $settingsWeights));
+                }
+            }
+        } catch (\Exception $e) {
+            // Use defaults if settings are unavailable
+        }
+
+        return $this->normalizeWeights($defaultWeights);
+    }
+
+    /**
+     * Normalize weights so they sum to 100.
+     */
+    protected function normalizeWeights(array $weights): array
+    {
+        $total = array_sum($weights);
+        if ($total === 0) {
+            return $weights;
+        }
+
+        return array_map(fn($w) => ($w / $total) * 100, $weights);
+    }
+
+    /**
+     * Calculate urgency score based on priority and deadline (0-1).
+     */
+    protected function calculateUrgencyScore(Task $task): float
+    {
+        $score = 0.5; // base score
+
+        // Priority boost
+        $priorityBoost = match($task->priority) {
+            'urgent' => 0.3,
+            'high' => 0.2,
+            'medium' => 0.1,
+            'low' => 0,
+            default => 0.05,
+        };
+        $score += $priorityBoost;
+
+        // Deadline proximity boost
+        if ($task->due_date) {
+            $daysUntilDue = now()->diffInDays($task->due_date, false);
+
+            if ($daysUntilDue < 0) {
+                // Already overdue - maximum urgency
+                $score += 0.3;
+            } elseif ($daysUntilDue <= 1) {
+                $score += 0.25;
+            } elseif ($daysUntilDue <= 3) {
+                $score += 0.2;
+            } elseif ($daysUntilDue <= 7) {
+                $score += 0.15;
+            } elseif ($daysUntilDue <= 14) {
+                $score += 0.1;
+            }
+        }
+
+        return min(1.0, $score);
     }
 
     /**

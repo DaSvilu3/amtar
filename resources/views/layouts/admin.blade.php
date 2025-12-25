@@ -515,189 +515,22 @@
         </div>
         
         <nav class="sidebar-menu">
-            <!-- Main Menu -->
-            <div class="menu-section">
-                <div class="menu-item">
-                    <a href="/admin/dashboard" class="menu-link {{ request()->is('admin/dashboard') ? 'active' : '' }}">
-                        <i class="fas fa-home menu-icon"></i>
-                        <span class="menu-text">Dashboard</span>
-                    </a>
+            @foreach($navigationSections as $section)
+                <div class="menu-section">
+                    @if($section['title'])
+                        <div class="menu-section-title">{{ $section['title'] }}</div>
+                    @endif
+
+                    @foreach($section['items'] as $item)
+                        <div class="menu-item">
+                            <a href="{{ route($item['route']) }}" class="menu-link {{ request()->is($item['activePattern']) ? 'active' : '' }}">
+                                <i class="fas {{ $item['icon'] }} menu-icon"></i>
+                                <span class="menu-text">{{ $item['label'] }}</span>
+                            </a>
+                        </div>
+                    @endforeach
                 </div>
-
-                <div class="menu-item">
-                    <a href="{{ route('admin.projects.index') }}" class="menu-link {{ request()->is('admin/projects*') ? 'active' : '' }}">
-                        <i class="fas fa-project-diagram menu-icon"></i>
-                        <span class="menu-text">Projects</span>
-                    </a>
-                </div>
-
-                <div class="menu-item">
-                    <a href="{{ route('admin.clients.index') }}" class="menu-link {{ request()->is('admin/clients*') ? 'active' : '' }}">
-                        <i class="fas fa-users menu-icon"></i>
-                        <span class="menu-text">Clients</span>
-                    </a>
-                </div>
-
-                <div class="menu-item">
-                    <a href="{{ route('admin.contracts.index') }}" class="menu-link {{ request()->is('admin/contracts*') ? 'active' : '' }}">
-                        <i class="fas fa-file-contract menu-icon"></i>
-                        <span class="menu-text">Contracts</span>
-                    </a>
-                </div>
-
-                <div class="menu-item">
-                    <a href="{{ route('admin.files.index') }}" class="menu-link {{ request()->is('admin/files*') ? 'active' : '' }}">
-                        <i class="fas fa-folder menu-icon"></i>
-                        <span class="menu-text">Files</span>
-                    </a>
-                </div>
-
-                <div class="menu-item">
-                    <a href="{{ route('admin.tasks.index') }}" class="menu-link {{ request()->is('admin/tasks*') ? 'active' : '' }}">
-                        <i class="fas fa-tasks menu-icon"></i>
-                        <span class="menu-text">Tasks</span>
-                    </a>
-                </div>
-
-                <div class="menu-item">
-                    <a href="{{ route('admin.milestones.index') }}" class="menu-link {{ request()->is('admin/milestones*') ? 'active' : '' }}">
-                        <i class="fas fa-flag-checkered menu-icon"></i>
-                        <span class="menu-text">Milestones</span>
-                    </a>
-                </div>
-            </div>
-
-            <!-- Services Management -->
-            <div class="menu-section">
-                <div class="menu-section-title">Services</div>
-
-                <div class="menu-item">
-                    <a href="{{ route('admin.services.index') }}" class="menu-link {{ request()->is('admin/services') ? 'active' : '' }}">
-                        <i class="fas fa-cogs menu-icon"></i>
-                        <span class="menu-text">Overview</span>
-                    </a>
-                </div>
-
-                <div class="menu-item">
-                    <a href="{{ route('admin.services.main.index') }}" class="menu-link {{ request()->is('admin/services/main*') ? 'active' : '' }}">
-                        <i class="fas fa-building menu-icon"></i>
-                        <span class="menu-text">Main Services</span>
-                    </a>
-                </div>
-
-                <div class="menu-item">
-                    <a href="{{ route('admin.services.sub.index') }}" class="menu-link {{ request()->is('admin/services/sub*') ? 'active' : '' }}">
-                        <i class="fas fa-code-branch menu-icon"></i>
-                        <span class="menu-text">Sub Services</span>
-                    </a>
-                </div>
-
-                <div class="menu-item">
-                    <a href="{{ route('admin.services.packages.index') }}" class="menu-link {{ request()->is('admin/services/packages*') ? 'active' : '' }}">
-                        <i class="fas fa-box menu-icon"></i>
-                        <span class="menu-text">Packages</span>
-                    </a>
-                </div>
-
-                <div class="menu-item">
-                    <a href="{{ route('admin.services.stages.index') }}" class="menu-link {{ request()->is('admin/services/stages*') ? 'active' : '' }}">
-                        <i class="fas fa-layer-group menu-icon"></i>
-                        <span class="menu-text">Stages</span>
-                    </a>
-                </div>
-
-                <div class="menu-item">
-                    <a href="{{ route('admin.services.services.index') }}" class="menu-link {{ request()->is('admin/services/services*') ? 'active' : '' }}">
-                        <i class="fas fa-wrench menu-icon"></i>
-                        <span class="menu-text">All Services</span>
-                    </a>
-                </div>
-            </div>
-
-            <!-- Resource Management -->
-            <div class="menu-section">
-                <div class="menu-section-title">Resources</div>
-
-                <div class="menu-item">
-                    <a href="{{ route('admin.skills.index') }}" class="menu-link {{ request()->is('admin/skills*') ? 'active' : '' }}">
-                        <i class="fas fa-graduation-cap menu-icon"></i>
-                        <span class="menu-text">Skills</span>
-                    </a>
-                </div>
-
-                <div class="menu-item">
-                    <a href="{{ route('admin.task-templates.index') }}" class="menu-link {{ request()->is('admin/task-templates*') ? 'active' : '' }}">
-                        <i class="fas fa-clipboard-list menu-icon"></i>
-                        <span class="menu-text">Task Templates</span>
-                    </a>
-                </div>
-
-                <div class="menu-item">
-                    <a href="{{ route('admin.tasks.pending-reviews') }}" class="menu-link {{ request()->is('admin/tasks/pending-reviews*') ? 'active' : '' }}">
-                        <i class="fas fa-clipboard-check menu-icon"></i>
-                        <span class="menu-text">Pending Reviews</span>
-                    </a>
-                </div>
-            </div>
-
-            <!-- Communication & Templates -->
-            <div class="menu-section">
-                <div class="menu-section-title">Templates</div>
-
-                <div class="menu-item">
-                    <a href="{{ route('admin.notification-templates.index') }}" class="menu-link {{ request()->is('admin/notification-templates*') ? 'active' : '' }}">
-                        <i class="fas fa-bell menu-icon"></i>
-                        <span class="menu-text">Notifications</span>
-                    </a>
-                </div>
-
-                <div class="menu-item">
-                    <a href="{{ route('admin.email-templates.index') }}" class="menu-link {{ request()->is('admin/email-templates*') ? 'active' : '' }}">
-                        <i class="fas fa-envelope menu-icon"></i>
-                        <span class="menu-text">Emails</span>
-                    </a>
-                </div>
-
-                <div class="menu-item">
-                    <a href="{{ route('admin.message-templates.index') }}" class="menu-link {{ request()->is('admin/message-templates*') ? 'active' : '' }}">
-                        <i class="fas fa-comments menu-icon"></i>
-                        <span class="menu-text">Messages</span>
-                    </a>
-                </div>
-            </div>
-
-            <!-- System -->
-            <div class="menu-section">
-                <div class="menu-section-title">System</div>
-
-                <div class="menu-item">
-                    <a href="{{ route('admin.users.index') }}" class="menu-link {{ request()->is('admin/users*') ? 'active' : '' }}">
-                        <i class="fas fa-users-cog menu-icon"></i>
-                        <span class="menu-text">Users</span>
-                    </a>
-                </div>
-
-                <div class="menu-item">
-                    <a href="{{ route('admin.roles.index') }}" class="menu-link {{ request()->is('admin/roles*') ? 'active' : '' }}">
-                        <i class="fas fa-user-shield menu-icon"></i>
-                        <span class="menu-text">Roles</span>
-                    </a>
-                </div>
-
-                <div class="menu-item">
-                    <a href="{{ route('admin.document-types.index') }}" class="menu-link {{ request()->is('admin/document-types*') ? 'active' : '' }}">
-                        <i class="fas fa-file-alt menu-icon"></i>
-                        <span class="menu-text">Document Types</span>
-                    </a>
-                </div>
-
-                <div class="menu-item">
-                    <a href="{{ route('admin.settings.index') }}" class="menu-link {{ request()->is('admin/settings*') ? 'active' : '' }}">
-                        <i class="fas fa-cog menu-icon"></i>
-                        <span class="menu-text">Settings</span>
-                    </a>
-                </div>
-            </div>
+            @endforeach
         </nav>
     </aside>
     

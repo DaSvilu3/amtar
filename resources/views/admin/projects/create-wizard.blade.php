@@ -27,24 +27,20 @@
     </div>
     @endif
 
-    <!-- Wizard Progress -->
+    <!-- Wizard Progress - Simplified to 3 Steps -->
     <div class="dashboard-card mb-4">
         <div class="wizard-progress">
             <div class="wizard-step active" data-step="1">
                 <div class="wizard-step-icon"><i class="fas fa-info-circle"></i></div>
-                <div class="wizard-step-title">Basic Info</div>
+                <div class="wizard-step-title">Project Details</div>
             </div>
             <div class="wizard-step" data-step="2">
                 <div class="wizard-step-icon"><i class="fas fa-cogs"></i></div>
                 <div class="wizard-step-title">Services</div>
             </div>
             <div class="wizard-step" data-step="3">
-                <div class="wizard-step-icon"><i class="fas fa-calendar"></i></div>
-                <div class="wizard-step-title">Details</div>
-            </div>
-            <div class="wizard-step" data-step="4">
-                <div class="wizard-step-icon"><i class="fas fa-file"></i></div>
-                <div class="wizard-step-title">Documents</div>
+                <div class="wizard-step-icon"><i class="fas fa-check-circle"></i></div>
+                <div class="wizard-step-title">Review & Create</div>
             </div>
         </div>
     </div>
@@ -52,10 +48,10 @@
     <form action="{{ route('admin.projects.store') }}" method="POST" enctype="multipart/form-data" id="projectWizardForm">
         @csrf
 
-        <!-- Step 1: Basic Information -->
+        <!-- Step 1: Project Details (Merged Basic Info + Details) -->
         <div class="wizard-content active" data-step="1">
             <div class="dashboard-card">
-                <h5 class="mb-4"><i class="fas fa-info-circle me-2"></i>Basic Information</h5>
+                <h5 class="mb-4"><i class="fas fa-info-circle me-2"></i>Project Details</h5>
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
@@ -96,16 +92,70 @@
                     </div>
 
                     <div class="col-md-6 mb-3">
+                        <label for="project_manager_id" class="form-label">Project Manager</label>
+                        <select class="form-select @error('project_manager_id') is-invalid @enderror"
+                                id="project_manager_id" name="project_manager_id">
+                            <option value="">Select Project Manager</option>
+                            @foreach($users as $user)
+                                <option value="{{ $user->id }}" {{ old('project_manager_id') == $user->id ? 'selected' : '' }}>
+                                    {{ $user->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('project_manager_id')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 mb-3">
                         <label for="status" class="form-label">Status <span class="text-danger">*</span></label>
                         <select class="form-select @error('status') is-invalid @enderror"
                                 id="status" name="status" required>
                             <option value="planning" {{ old('status', 'planning') == 'planning' ? 'selected' : '' }}>Planning</option>
                             <option value="in_progress" {{ old('status') == 'in_progress' ? 'selected' : '' }}>In Progress</option>
                             <option value="on_hold" {{ old('status') == 'on_hold' ? 'selected' : '' }}>On Hold</option>
-                            <option value="completed" {{ old('status') == 'completed' ? 'selected' : '' }}>Completed</option>
-                            <option value="cancelled" {{ old('status') == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
                         </select>
                         @error('status')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label for="start_date" class="form-label">Start Date</label>
+                        <input type="date" class="form-control @error('start_date') is-invalid @enderror"
+                               id="start_date" name="start_date" value="{{ old('start_date') }}">
+                        @error('start_date')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label for="end_date" class="form-label">End Date</label>
+                        <input type="date" class="form-control @error('end_date') is-invalid @enderror"
+                               id="end_date" name="end_date" value="{{ old('end_date') }}">
+                        @error('end_date')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="budget" class="form-label">Budget (OMR)</label>
+                        <input type="number" class="form-control @error('budget') is-invalid @enderror"
+                               id="budget" name="budget" value="{{ old('budget') }}" step="0.01" min="0">
+                        @error('budget')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="location" class="form-label">Location</label>
+                        <input type="text" class="form-control @error('location') is-invalid @enderror"
+                               id="location" name="location" value="{{ old('location') }}" placeholder="e.g., Muscat, Oman">
+                        @error('location')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
@@ -114,7 +164,7 @@
                 <div class="mb-3">
                     <label for="description" class="form-label">Description</label>
                     <textarea class="form-control @error('description') is-invalid @enderror"
-                              id="description" name="description" rows="3">{{ old('description') }}</textarea>
+                              id="description" name="description" rows="3" placeholder="Brief project description...">{{ old('description') }}</textarea>
                     @error('description')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
@@ -122,13 +172,13 @@
             </div>
         </div>
 
-        <!-- Step 2: Services -->
+        <!-- Step 2: Services (Simplified - Single selection method) -->
         <div class="wizard-content" data-step="2">
             <div class="dashboard-card">
-                <h5 class="mb-4"><i class="fas fa-cogs me-2"></i>Services & Packages</h5>
+                <h5 class="mb-4"><i class="fas fa-cogs me-2"></i>Select Services</h5>
 
-                <div class="row">
-                    <div class="col-md-6 mb-3">
+                <div class="row mb-4">
+                    <div class="col-md-4 mb-3">
                         <label for="main_service_id" class="form-label">Main Service <span class="text-danger">*</span></label>
                         <select class="form-select @error('main_service_id') is-invalid @enderror"
                                 id="main_service_id" name="main_service_id" required>
@@ -144,7 +194,7 @@
                         @enderror
                     </div>
 
-                    <div class="col-md-6 mb-3">
+                    <div class="col-md-4 mb-3">
                         <label for="sub_service_id" class="form-label">Sub Service</label>
                         <select class="form-select @error('sub_service_id') is-invalid @enderror"
                                 id="sub_service_id" name="sub_service_id">
@@ -154,213 +204,177 @@
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label for="service_package_id" class="form-label">Service Package</label>
+                        <select class="form-select @error('service_package_id') is-invalid @enderror"
+                                id="service_package_id" name="service_package_id">
+                            <option value="">Select a Package (Optional)</option>
+                        </select>
+                        @error('service_package_id')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
                 </div>
 
-                <div class="mb-4">
-                    <label for="service_package_id" class="form-label">Service Package (Optional)</label>
-                    <select class="form-select @error('service_package_id') is-invalid @enderror"
-                            id="service_package_id" name="service_package_id">
-                        <option value="">No Package - Select Services Manually</option>
-                    </select>
-                    @error('service_package_id')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                    <small class="text-muted">Choose a package for pre-configured services, or select services individually below.</small>
-                </div>
-
-                <!-- Package Services Preview (shown when package selected) -->
+                <!-- Package Services Preview -->
                 <div id="packageServicesPreview" class="mb-4" style="display: none;">
-                    <div class="alert alert-info">
-                        <h6><i class="fas fa-box-open me-2"></i>Package Services</h6>
+                    <div class="alert alert-success">
+                        <h6 class="mb-2"><i class="fas fa-box-open me-2"></i>Package Includes:</h6>
                         <div id="packageServicesList"></div>
-                        @if(config('project.creation.editable_package_services', true))
-                        <small class="text-muted mt-2 d-block">
-                            <i class="fas fa-info-circle"></i> You can remove services from the package by unchecking them below.
-                        </small>
-                        @endif
                     </div>
                 </div>
 
-                <!-- Service Selection Tabs -->
-                <div class="service-selection-tabs">
-                    <ul class="nav nav-tabs mb-3" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="section-tab" data-bs-toggle="tab" data-bs-target="#section-selection" type="button" role="tab">
-                                <i class="fas fa-layer-group me-1"></i> Select by Section
+                <!-- Service Selection by Stage -->
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0">Or Select Individual Services:</h6>
+                        <div>
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="expandAllSections()">
+                                <i class="fas fa-expand-alt me-1"></i> Expand All
                             </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="individual-tab" data-bs-toggle="tab" data-bs-target="#individual-selection" type="button" role="tab">
-                                <i class="fas fa-list me-1"></i> Select Individual Services
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="collapseAllSections()">
+                                <i class="fas fa-compress-alt me-1"></i> Collapse All
                             </button>
-                        </li>
-                    </ul>
-
-                    <div class="tab-content">
-                        <!-- Section Selection -->
-                        <div class="tab-pane fade show active" id="section-selection" role="tabpanel">
-                            <p class="text-muted mb-3">
-                                <i class="fas fa-info-circle"></i> Select entire sections/stages at once for faster setup.
-                            </p>
-                            <div id="sectionSelectionContainer">
-                                <div class="text-center py-4">
-                                    <div class="spinner-border spinner-border-sm" role="status">
-                                        <span class="visually-hidden">Loading...</span>
-                                    </div>
-                                    <span class="ms-2">Loading service stages...</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Individual Service Selection -->
-                        <div class="tab-pane fade" id="individual-selection" role="tabpanel">
-                            <p class="text-muted mb-3">
-                                <i class="fas fa-info-circle"></i> Select specific services individually.
-                            </p>
-                            <div id="individualServicesContainer">
-                                <div class="text-center py-4">
-                                    <div class="spinner-border spinner-border-sm" role="status">
-                                        <span class="visually-hidden">Loading...</span>
-                                    </div>
-                                    <span class="ms-2">Loading services...</span>
-                                </div>
-                            </div>
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
 
-        <!-- Step 3: Project Details -->
-        <div class="wizard-content" data-step="3">
-            <div class="dashboard-card">
-                <h5 class="mb-4"><i class="fas fa-calendar me-2"></i>Project Details</h5>
-
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label for="budget" class="form-label">Budget (OMR)</label>
-                        <input type="number" class="form-control @error('budget') is-invalid @enderror"
-                               id="budget" name="budget" value="{{ old('budget') }}" step="0.01" min="0">
-                        @error('budget')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-
-                    <div class="col-md-6 mb-3">
-                        <label for="location" class="form-label">Location</label>
-                        <input type="text" class="form-control @error('location') is-invalid @enderror"
-                               id="location" name="location" value="{{ old('location') }}">
-                        @error('location')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label for="start_date" class="form-label">Start Date</label>
-                        <input type="date" class="form-control @error('start_date') is-invalid @enderror"
-                               id="start_date" name="start_date" value="{{ old('start_date') }}">
-                        @error('start_date')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-
-                    <div class="col-md-6 mb-3">
-                        <label for="end_date" class="form-label">End Date</label>
-                        <input type="date" class="form-control @error('end_date') is-invalid @enderror"
-                               id="end_date" name="end_date" value="{{ old('end_date') }}">
-                        @error('end_date')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <label for="project_manager_id" class="form-label">Project Manager</label>
-                    <select class="form-select @error('project_manager_id') is-invalid @enderror"
-                            id="project_manager_id" name="project_manager_id">
-                        <option value="">Select Project Manager</option>
-                        @foreach($users as $user)
-                            <option value="{{ $user->id }}" {{ old('project_manager_id') == $user->id ? 'selected' : '' }}>
-                                {{ $user->name }}
-                            </option>
-                        @endforeach
-                    </select>
-                    @error('project_manager_id')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                </div>
-
-                @if(!config('project.creation.auto_generate_contract', false))
-                <div class="mb-3">
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="generate_contract" name="generate_contract" value="1"
-                               {{ old('generate_contract', config('project.creation.generate_contract_by_default', true)) ? 'checked' : '' }}>
-                        <label class="form-check-label" for="generate_contract">
-                            Automatically generate contract for this project
-                        </label>
-                        <small class="d-block text-muted mt-1">
-                            <i class="fas fa-info-circle"></i> If checked, a draft contract will be created automatically with all selected services.
-                        </small>
-                    </div>
-                </div>
-                @endif
-            </div>
-        </div>
-
-        <!-- Step 4: Documents -->
-        <div class="wizard-content" data-step="4">
-            <div class="dashboard-card">
-                <h5 class="mb-4"><i class="fas fa-file me-2"></i>Project Documents</h5>
-
-                <p class="text-muted mb-4">
-                    <i class="fas fa-info-circle"></i> Upload project documents. You can also add documents later from the project page.
-                </p>
-
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label for="project_mulkiya" class="form-label">Project Mulkiya (Title Deed)</label>
-                        <input type="file" class="form-control @error('documents.project_mulkiya') is-invalid @enderror"
-                               id="project_mulkiya" name="documents[project_mulkiya]" accept=".pdf,.jpg,.jpeg,.png">
-                        @error('documents.project_mulkiya')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-
-                    <div class="col-md-6 mb-3">
-                        <label for="project_kuroki" class="form-label">Project Kuroki (Sketch/Plan)</label>
-                        <input type="file" class="form-control @error('documents.project_kuroki') is-invalid @enderror"
-                               id="project_kuroki" name="documents[project_kuroki]" accept=".pdf,.jpg,.jpeg,.png">
-                        @error('documents.project_kuroki')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label for="location_map" class="form-label">Location Map</label>
-                        <input type="file" class="form-control @error('documents.location_map') is-invalid @enderror"
-                               id="location_map" name="documents[location_map]" accept=".pdf,.jpg,.jpeg,.png">
-                        @error('documents.location_map')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-
-                    <div class="col-md-6 mb-3">
-                        <label for="noc" class="form-label">NOC (No Objection Certificate)</label>
-                        <input type="file" class="form-control @error('documents.noc') is-invalid @enderror"
-                               id="noc" name="documents[noc]" accept=".pdf,.jpg,.jpeg,.png">
-                        @error('documents.noc')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
+                    <div id="serviceStagesContainer">
+                        <div class="text-center py-4">
+                            <div class="spinner-border spinner-border-sm" role="status"></div>
+                            <span class="ms-2">Loading service stages...</span>
+                        </div>
                     </div>
                 </div>
 
                 <div class="alert alert-info">
                     <i class="fas fa-lightbulb me-2"></i>
-                    <strong>Tip:</strong> All documents are optional. You can skip this step and add documents later from the project page.
+                    <strong>Tip:</strong> Select a package for quick setup, or pick individual services for full control.
+                    Selected services will be shown in the review step.
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 3: Review & Create -->
+        <div class="wizard-content" data-step="3">
+            <div class="dashboard-card">
+                <h5 class="mb-4"><i class="fas fa-check-circle me-2"></i>Review & Create</h5>
+
+                <p class="text-muted mb-4">Review your project details before creating. You can go back to make changes.</p>
+
+                <!-- Project Summary -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="border rounded p-3 mb-3">
+                            <h6 class="text-muted mb-3"><i class="fas fa-info-circle me-2"></i>Project Information</h6>
+                            <table class="table table-sm table-borderless mb-0">
+                                <tr>
+                                    <td class="text-muted" style="width: 40%;">Name:</td>
+                                    <td id="review-name" class="fw-semibold">-</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Number:</td>
+                                    <td id="review-number">-</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Client:</td>
+                                    <td id="review-client">-</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Project Manager:</td>
+                                    <td id="review-pm">-</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Status:</td>
+                                    <td id="review-status">-</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="border rounded p-3 mb-3">
+                            <h6 class="text-muted mb-3"><i class="fas fa-calendar me-2"></i>Schedule & Budget</h6>
+                            <table class="table table-sm table-borderless mb-0">
+                                <tr>
+                                    <td class="text-muted" style="width: 40%;">Start Date:</td>
+                                    <td id="review-start">-</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">End Date:</td>
+                                    <td id="review-end">-</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Budget:</td>
+                                    <td id="review-budget">-</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Location:</td>
+                                    <td id="review-location">-</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Services Summary -->
+                <div class="border rounded p-3 mb-3">
+                    <h6 class="text-muted mb-3"><i class="fas fa-cogs me-2"></i>Selected Services</h6>
+                    <div id="review-services">
+                        <span class="text-muted">No services selected</span>
+                    </div>
+                </div>
+
+                <!-- Options -->
+                <div class="border rounded p-3 mb-3">
+                    <h6 class="text-muted mb-3"><i class="fas fa-sliders-h me-2"></i>Creation Options</h6>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-check form-switch mb-2">
+                                <input class="form-check-input" type="checkbox" id="auto_generate_tasks" name="auto_generate_tasks" value="1" checked>
+                                <label class="form-check-label" for="auto_generate_tasks">
+                                    Generate tasks from templates
+                                </label>
+                            </div>
+                            <small class="text-muted d-block mb-3">Tasks will be created based on selected services</small>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check form-switch mb-2">
+                                <input class="form-check-input" type="checkbox" id="auto_assign_tasks" name="auto_assign_tasks" value="1" checked>
+                                <label class="form-check-label" for="auto_assign_tasks">
+                                    Auto-assign tasks to team
+                                </label>
+                            </div>
+                            <small class="text-muted d-block mb-3">Based on skills, availability, and workload</small>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-check form-switch mb-2">
+                                <input class="form-check-input" type="checkbox" id="generate_contract" name="generate_contract" value="1"
+                                       {{ old('generate_contract', config('project.creation.generate_contract_by_default', true)) ? 'checked' : '' }}>
+                                <label class="form-check-label" for="generate_contract">
+                                    Generate draft contract
+                                </label>
+                            </div>
+                            <small class="text-muted d-block">A draft contract will be created automatically</small>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check form-switch mb-2">
+                                <input class="form-check-input" type="checkbox" id="generate_milestones" name="generate_milestones" value="1" checked>
+                                <label class="form-check-label" for="generate_milestones">
+                                    Generate milestones
+                                </label>
+                            </div>
+                            <small class="text-muted d-block">Default milestones based on project timeline</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-success">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Ready to create!</strong> You can add documents and make further adjustments after the project is created.
                 </div>
             </div>
         </div>
@@ -376,7 +390,7 @@
                     Next <i class="fas fa-arrow-right ms-1"></i>
                 </button>
                 <button type="submit" class="btn btn-success" id="submitBtn" style="display: none;">
-                    <i class="fas fa-check me-1"></i> Create Project
+                    <i class="fas fa-plus me-1"></i> Create Project
                 </button>
             </div>
         </div>
@@ -395,8 +409,8 @@
     content: '';
     position: absolute;
     top: 50px;
-    left: 12.5%;
-    right: 12.5%;
+    left: 16%;
+    right: 16%;
     height: 2px;
     background: #e0e0e0;
     z-index: 0;
@@ -466,51 +480,40 @@
     to { opacity: 1; transform: translateY(0); }
 }
 
-.service-section {
+.service-stage-card {
     border: 1px solid #e0e0e0;
     border-radius: 8px;
-    padding: 15px;
-    margin-bottom: 15px;
-    transition: all 0.2s;
+    margin-bottom: 12px;
+    overflow: hidden;
 }
 
-.service-section:hover {
-    border-color: var(--primary-color);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-}
-
-.service-section-header {
+.service-stage-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    cursor: pointer;
-    padding: 10px;
+    padding: 12px 15px;
     background: #f8f9fa;
-    border-radius: 6px;
-    margin-bottom: 10px;
+    cursor: pointer;
+    transition: background 0.2s;
 }
 
-.service-section-header h6 {
+.service-stage-header:hover {
+    background: #e9ecef;
+}
+
+.service-stage-header h6 {
     margin: 0;
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 600;
 }
 
-.service-section-badge {
-    background: var(--primary-color);
-    color: white;
-    padding: 4px 12px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 500;
-}
-
-.service-list {
-    padding-left: 30px;
+.service-stage-body {
+    padding: 15px;
     display: none;
+    border-top: 1px solid #e0e0e0;
 }
 
-.service-list.show {
+.service-stage-body.show {
     display: block;
 }
 
@@ -523,36 +526,30 @@
     border-bottom: none;
 }
 
-.select-all-section {
+.service-count-badge {
     background: var(--primary-color);
     color: white;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.select-all-section:hover {
-    opacity: 0.9;
-    transform: translateY(-1px);
-}
-
-.service-count {
+    padding: 2px 10px;
+    border-radius: 12px;
     font-size: 12px;
-    color: #6c757d;
-    margin-left: 5px;
+}
+
+.selected-services-badge {
+    background: #28a745;
+    color: white;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 13px;
+    margin-right: 8px;
 }
 </style>
 
 @push('scripts')
 <script>
 let currentStep = 1;
-const totalSteps = 4;
+const totalSteps = 3;
 
 function showStep(step) {
-    // Hide all steps
     document.querySelectorAll('.wizard-content').forEach(content => {
         content.classList.remove('active');
     });
@@ -560,25 +557,25 @@ function showStep(step) {
         stepEl.classList.remove('active');
     });
 
-    // Show current step
     document.querySelector(`.wizard-content[data-step="${step}"]`).classList.add('active');
     document.querySelector(`.wizard-step[data-step="${step}"]`).classList.add('active');
 
-    // Mark previous steps as completed
     for (let i = 1; i < step; i++) {
         document.querySelector(`.wizard-step[data-step="${i}"]`).classList.add('completed');
     }
 
-    // Update buttons
     document.getElementById('prevBtn').style.display = step === 1 ? 'none' : 'inline-block';
     document.getElementById('nextBtn').style.display = step === totalSteps ? 'none' : 'inline-block';
     document.getElementById('submitBtn').style.display = step === totalSteps ? 'inline-block' : 'none';
+
+    if (step === 3) {
+        updateReviewSummary();
+    }
 }
 
 function changeStep(direction) {
     const newStep = currentStep + direction;
     if (newStep >= 1 && newStep <= totalSteps) {
-        // Validate current step before moving forward
         if (direction > 0 && !validateStep(currentStep)) {
             return;
         }
@@ -603,30 +600,105 @@ function validateStep(step) {
     return true;
 }
 
-// Service loading functions
-let allServices = {};
-let allStages = {};
-let selectedServices = new Set();
-let selectedSections = new Set();
+function updateReviewSummary() {
+    // Project info
+    document.getElementById('review-name').textContent = document.getElementById('name').value || '-';
+    document.getElementById('review-number').textContent = document.getElementById('project_number').value || '-';
 
+    const clientSelect = document.getElementById('client_id');
+    document.getElementById('review-client').textContent = clientSelect.selectedIndex > 0
+        ? clientSelect.options[clientSelect.selectedIndex].text : '-';
+
+    const pmSelect = document.getElementById('project_manager_id');
+    document.getElementById('review-pm').textContent = pmSelect.selectedIndex > 0
+        ? pmSelect.options[pmSelect.selectedIndex].text : 'Not assigned';
+
+    const statusSelect = document.getElementById('status');
+    document.getElementById('review-status').textContent = statusSelect.selectedIndex >= 0
+        ? statusSelect.options[statusSelect.selectedIndex].text : '-';
+
+    // Schedule & Budget
+    document.getElementById('review-start').textContent = document.getElementById('start_date').value || 'Not set';
+    document.getElementById('review-end').textContent = document.getElementById('end_date').value || 'Not set';
+
+    const budget = document.getElementById('budget').value;
+    document.getElementById('review-budget').textContent = budget ? `OMR ${parseFloat(budget).toLocaleString()}` : 'Not set';
+    document.getElementById('review-location').textContent = document.getElementById('location').value || 'Not set';
+
+    // Services
+    updateServicesReview();
+}
+
+function updateServicesReview() {
+    const container = document.getElementById('review-services');
+    const selectedServices = [];
+
+    // Package
+    const packageSelect = document.getElementById('service_package_id');
+    if (packageSelect.value) {
+        selectedServices.push({
+            type: 'package',
+            name: packageSelect.options[packageSelect.selectedIndex].text
+        });
+    }
+
+    // Main service
+    const mainServiceSelect = document.getElementById('main_service_id');
+    if (mainServiceSelect.value) {
+        selectedServices.push({
+            type: 'main',
+            name: mainServiceSelect.options[mainServiceSelect.selectedIndex].text
+        });
+    }
+
+    // Sub service
+    const subServiceSelect = document.getElementById('sub_service_id');
+    if (subServiceSelect.value) {
+        selectedServices.push({
+            type: 'sub',
+            name: subServiceSelect.options[subServiceSelect.selectedIndex].text
+        });
+    }
+
+    // Individual services
+    document.querySelectorAll('.service-check:checked').forEach(cb => {
+        selectedServices.push({
+            type: 'service',
+            name: cb.dataset.serviceName
+        });
+    });
+
+    if (selectedServices.length === 0) {
+        container.innerHTML = '<span class="text-muted">No services selected</span>';
+        return;
+    }
+
+    let html = '<div class="d-flex flex-wrap gap-2">';
+    selectedServices.forEach(s => {
+        const badgeClass = s.type === 'package' ? 'bg-primary' :
+                          s.type === 'main' ? 'bg-success' :
+                          s.type === 'sub' ? 'bg-info' : 'bg-secondary';
+        html += `<span class="badge ${badgeClass}">${s.name}</span>`;
+    });
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+// Service loading
 document.addEventListener('DOMContentLoaded', function() {
     showStep(1);
     loadServiceStages();
-    loadAllServices();
 
-    // Main service change handler
     document.getElementById('main_service_id').addEventListener('change', function() {
         loadSubServices(this.value);
         loadPackages(this.value, null);
     });
 
-    // Sub service change handler
     document.getElementById('sub_service_id').addEventListener('change', function() {
         const mainServiceId = document.getElementById('main_service_id').value;
         loadPackages(mainServiceId, this.value);
     });
 
-    // Package change handler
     document.getElementById('service_package_id').addEventListener('change', function() {
         if (this.value) {
             loadPackageServices(this.value);
@@ -640,18 +712,17 @@ function loadServiceStages() {
     fetch('{{ route("admin.api.services.stages") }}')
         .then(response => response.json())
         .then(stages => {
-            allStages = stages;
             renderServiceStages(stages);
         })
         .catch(error => {
             console.error('Error loading service stages:', error);
-            document.getElementById('sectionSelectionContainer').innerHTML =
+            document.getElementById('serviceStagesContainer').innerHTML =
                 '<div class="alert alert-danger">Failed to load service stages</div>';
         });
 }
 
 function renderServiceStages(stages) {
-    const container = document.getElementById('sectionSelectionContainer');
+    const container = document.getElementById('serviceStagesContainer');
     if (stages.length === 0) {
         container.innerHTML = '<p class="text-muted">No service stages available</p>';
         return;
@@ -660,26 +731,32 @@ function renderServiceStages(stages) {
     let html = '';
     stages.forEach(stage => {
         html += `
-            <div class="service-section">
-                <div class="service-section-header" onclick="toggleSection('${stage.id}')">
+            <div class="service-stage-card">
+                <div class="service-stage-header" onclick="toggleStage('${stage.id}')">
                     <div>
                         <h6>${stage.name}</h6>
                         <small class="text-muted">${stage.description || ''}</small>
-                        <span class="service-count">(${stage.service_count} services)</span>
                     </div>
-                    <button type="button" class="select-all-section" onclick="event.stopPropagation(); selectAllInSection('${stage.id}')">
-                        Select All
-                    </button>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="service-count-badge">${stage.service_count} services</span>
+                        <button type="button" class="btn btn-sm btn-outline-primary"
+                                onclick="event.stopPropagation(); selectAllInStage('${stage.id}')">
+                            Select All
+                        </button>
+                        <i class="fas fa-chevron-down" id="chevron-${stage.id}"></i>
+                    </div>
                 </div>
-                <div class="service-list" id="section-${stage.id}">
+                <div class="service-stage-body" id="stage-body-${stage.id}">
                     ${stage.services.map(service => `
                         <div class="service-item">
                             <div class="form-check">
-                                <input type="checkbox" class="form-check-input section-service-check"
-                                       data-section="${stage.id}" value="${service.id}"
-                                       name="custom_services[]" id="service-${service.id}">
+                                <input type="checkbox" class="form-check-input service-check"
+                                       data-stage="${stage.id}" data-service-name="${service.name}"
+                                       value="${service.id}" name="custom_services[]"
+                                       id="service-${service.id}">
                                 <label class="form-check-label" for="service-${service.id}">
                                     ${service.name}
+                                    ${service.estimated_hours ? `<small class="text-muted">(~${service.estimated_hours}h)</small>` : ''}
                                 </label>
                             </div>
                         </div>
@@ -692,70 +769,35 @@ function renderServiceStages(stages) {
     container.innerHTML = html;
 }
 
-function toggleSection(sectionId) {
-    const sectionList = document.getElementById(`section-${sectionId}`);
-    sectionList.classList.toggle('show');
+function toggleStage(stageId) {
+    const body = document.getElementById(`stage-body-${stageId}`);
+    const chevron = document.getElementById(`chevron-${stageId}`);
+
+    body.classList.toggle('show');
+    chevron.classList.toggle('fa-chevron-down');
+    chevron.classList.toggle('fa-chevron-up');
 }
 
-function selectAllInSection(sectionId) {
-    const checkboxes = document.querySelectorAll(`[data-section="${sectionId}"]`);
+function expandAllSections() {
+    document.querySelectorAll('.service-stage-body').forEach(body => body.classList.add('show'));
+    document.querySelectorAll('[id^="chevron-"]').forEach(chevron => {
+        chevron.classList.remove('fa-chevron-down');
+        chevron.classList.add('fa-chevron-up');
+    });
+}
+
+function collapseAllSections() {
+    document.querySelectorAll('.service-stage-body').forEach(body => body.classList.remove('show'));
+    document.querySelectorAll('[id^="chevron-"]').forEach(chevron => {
+        chevron.classList.add('fa-chevron-down');
+        chevron.classList.remove('fa-chevron-up');
+    });
+}
+
+function selectAllInStage(stageId) {
+    const checkboxes = document.querySelectorAll(`[data-stage="${stageId}"]`);
     const allChecked = Array.from(checkboxes).every(cb => cb.checked);
-
-    checkboxes.forEach(checkbox => {
-        checkbox.checked = !allChecked;
-    });
-
-    // Add section to selected sections for backend processing
-    const sectionInput = document.createElement('input');
-    sectionInput.type = 'hidden';
-    sectionInput.name = 'selected_sections[]';
-    sectionInput.value = sectionId;
-    sectionInput.className = 'section-selection-input';
-
-    // Remove old inputs for this section
-    document.querySelectorAll(`.section-selection-input[value="${sectionId}"]`).forEach(el => el.remove());
-
-    if (!allChecked) {
-        document.getElementById('projectWizardForm').appendChild(sectionInput);
-    }
-}
-
-function loadAllServices() {
-    fetch('{{ route("admin.api.services.all") }}')
-        .then(response => response.json())
-        .then(services => {
-            allServices = services;
-            renderIndividualServices(services);
-        })
-        .catch(error => {
-            console.error('Error loading services:', error);
-            document.getElementById('individualServicesContainer').innerHTML =
-                '<div class="alert alert-danger">Failed to load services</div>';
-        });
-}
-
-function renderIndividualServices(services) {
-    const container = document.getElementById('individualServicesContainer');
-
-    let html = '';
-    Object.keys(services).forEach(stageName => {
-        html += `
-            <div class="service-section mb-3">
-                <h6 class="mb-2">${stageName}</h6>
-                ${services[stageName].map(service => `
-                    <div class="form-check">
-                        <input type="checkbox" class="form-check-input" value="${service.id}"
-                               name="custom_services[]" id="individual-service-${service.id}">
-                        <label class="form-check-label" for="individual-service-${service.id}">
-                            ${service.name}
-                        </label>
-                    </div>
-                `).join('')}
-            </div>
-        `;
-    });
-
-    container.innerHTML = html || '<p class="text-muted">No services available</p>';
+    checkboxes.forEach(checkbox => checkbox.checked = !allChecked);
 }
 
 function loadSubServices(mainServiceId) {
@@ -786,7 +828,7 @@ function loadPackages(mainServiceId, subServiceId) {
     fetch(url)
         .then(response => response.json())
         .then(packages => {
-            let options = '<option value="">No Package - Select Services Manually</option>';
+            let options = '<option value="">Select a Package (Optional)</option>';
             packages.forEach(pkg => {
                 options += `<option value="${pkg.id}">${pkg.name}</option>`;
             });
@@ -806,12 +848,13 @@ function displayPackageServices(services) {
     const previewDiv = document.getElementById('packageServicesPreview');
     const listDiv = document.getElementById('packageServicesList');
 
-    let html = '';
+    let html = '<div class="d-flex flex-wrap gap-2">';
     Object.keys(services).forEach(stageName => {
-        html += `<div class="mb-2"><strong>${stageName}:</strong> `;
-        html += services[stageName].map(s => s.name).join(', ');
-        html += '</div>';
+        services[stageName].forEach(service => {
+            html += `<span class="badge bg-light text-dark border">${service.name}</span>`;
+        });
     });
+    html += '</div>';
 
     listDiv.innerHTML = html;
     previewDiv.style.display = 'block';

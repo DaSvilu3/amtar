@@ -128,6 +128,36 @@ class SettingSeeder extends Seeder
                 'group' => 'notifications',
                 'description' => 'Enable/disable email notifications',
             ],
+
+            // Task Assignment Settings
+            [
+                'key' => 'task_assignment.weights',
+                'value' => json_encode([
+                    'skill_match' => 25,
+                    'expertise_level' => 20,
+                    'availability' => 20,
+                    'workload' => 15,
+                    'experience' => 10,
+                    'urgency' => 10,
+                ]),
+                'type' => 'json',
+                'group' => 'task_assignment',
+                'description' => 'Scoring weights for automatic task assignment algorithm',
+            ],
+            [
+                'key' => 'task_assignment.auto_assign_on_create',
+                'value' => '1',
+                'type' => 'boolean',
+                'group' => 'task_assignment',
+                'description' => 'Automatically assign tasks when created from templates',
+            ],
+            [
+                'key' => 'task_assignment.reviewer_auto_assign',
+                'value' => '1',
+                'type' => 'boolean',
+                'group' => 'task_assignment',
+                'description' => 'Automatically assign reviewer when task needs review',
+            ],
         ];
 
         foreach ($settings as $setting) {

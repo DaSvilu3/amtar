@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Milestone;
 use App\Models\Project;
 use App\Models\Client;
 use App\Models\Contract;
+use App\Models\Role;
 use App\Models\Task;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -15,38 +17,226 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        // Main statistics
+        $user = auth()->user();
+
+        // Dispatch to role-specific dashboard
+        if ($user->hasRole('administrator')) {
+            return $this->adminDashboard();
+        }
+
+        if ($user->hasRole('project-manager')) {
+            return $this->projectManagerDashboard();
+        }
+
+        // Default: Engineer dashboard
+        return $this->engineerDashboard();
+    }
+
+    /**
+     * Administrator Dashboard - Full system overview
+     */
+    private function adminDashboard()
+    {
         $stats = [
             'active_projects' => Project::where('status', 'in_progress')->count(),
             'pending_tasks' => Task::where('status', 'pending')->count(),
             'total_clients' => Client::count(),
-            'new_clients_this_week' => Client::where('created_at', '>=', now()->subWeek())->count(),
             'monthly_revenue' => Contract::whereMonth('created_at', now()->month)
                 ->whereYear('created_at', now()->year)
                 ->whereIn('status', ['active', 'signed'])
                 ->sum('value'),
-            'pending_approvals' => Task::where('status', 'review')->count(),
+            'total_users' => User::count(),
+            'active_users' => User::where('is_active', true)->count(),
+            'overdue_tasks' => Task::where('due_date', '<', now())
+                ->whereNotIn('status', ['completed', 'cancelled'])
+                ->count(),
+            'pending_reviews' => Task::where('status', 'review')->count(),
+            'completed_this_month' => Task::where('status', 'completed')
+                ->whereMonth('completed_at', now()->month)
+                ->whereYear('completed_at', now()->year)
+                ->count(),
         ];
 
-        // Recent tasks for the dashboard
+        $usersByRole = Role::withCount('users')->get();
+
         $recentTasks = Task::with(['project', 'assignedTo'])
             ->whereIn('status', ['pending', 'in_progress', 'review'])
             ->orderBy('due_date')
             ->orderByRaw("FIELD(priority, 'urgent', 'high', 'medium', 'low')")
-            ->take(5)
+            ->take(10)
             ->get();
 
-        // Projects with progress
         $projectProgress = Project::where('status', 'in_progress')
             ->select('id', 'name', 'progress')
             ->orderBy('updated_at', 'desc')
-            ->take(4)
+            ->take(6)
             ->get();
 
-        // Recent activities (simulated from recent model changes)
         $recentActivities = $this->getRecentActivities();
 
-        return view('admin.dashboard', compact('stats', 'recentTasks', 'projectProgress', 'recentActivities'));
+        return view('admin.dashboard', [
+            'dashboardType' => 'admin',
+            'stats' => $stats,
+            'usersByRole' => $usersByRole,
+            'recentTasks' => $recentTasks,
+            'projectProgress' => $projectProgress,
+            'recentActivities' => $recentActivities,
+        ]);
+    }
+
+    /**
+     * Project Manager Dashboard - Project & team focused
+     */
+    private function projectManagerDashboard()
+    {
+        $user = auth()->user();
+
+        $myProjects = $user->managedProjects()
+            ->with(['client', 'tasks'])
+            ->whereNotIn('status', ['completed', 'cancelled'])
+            ->get();
+
+        $projectIds = $myProjects->pluck('id');
+
+        $stats = [
+            'my_projects_count' => $myProjects->count(),
+            'team_pending_tasks' => Task::whereIn('project_id', $projectIds)
+                ->where('status', 'pending')->count(),
+            'team_in_progress' => Task::whereIn('project_id', $projectIds)
+                ->where('status', 'in_progress')->count(),
+            'pending_reviews' => Task::whereIn('project_id', $projectIds)
+                ->where('status', 'review')->count(),
+            'overdue_tasks' => Task::whereIn('project_id', $projectIds)
+                ->where('due_date', '<', now())
+                ->whereNotIn('status', ['completed', 'cancelled'])
+                ->count(),
+        ];
+
+        $teamTasks = Task::whereIn('project_id', $projectIds)
+            ->with(['project', 'assignedTo'])
+            ->whereIn('status', ['pending', 'in_progress', 'review'])
+            ->orderByRaw("FIELD(priority, 'urgent', 'high', 'medium', 'low')")
+            ->orderBy('due_date')
+            ->take(15)
+            ->get();
+
+        $upcomingMilestones = Milestone::whereIn('project_id', $projectIds)
+            ->with('project')
+            ->whereNotIn('status', ['completed'])
+            ->orderBy('target_date')
+            ->take(5)
+            ->get();
+
+        // Team members working on their projects
+        $teamMembers = User::whereHas('assignedTasks', function ($q) use ($projectIds) {
+            $q->whereIn('project_id', $projectIds)
+                ->whereIn('status', ['pending', 'in_progress', 'review']);
+        })->withCount(['assignedTasks' => function ($q) use ($projectIds) {
+            $q->whereIn('project_id', $projectIds)
+                ->whereIn('status', ['pending', 'in_progress', 'review']);
+        }])->get();
+
+        return view('admin.dashboard', [
+            'dashboardType' => 'project-manager',
+            'stats' => $stats,
+            'myProjects' => $myProjects,
+            'teamTasks' => $teamTasks,
+            'upcomingMilestones' => $upcomingMilestones,
+            'teamMembers' => $teamMembers,
+        ]);
+    }
+
+    /**
+     * Engineer Dashboard - Task focused
+     */
+    private function engineerDashboard()
+    {
+        $user = auth()->user();
+
+        // My assigned tasks, priority sorted
+        $myTasks = Task::with(['project', 'projectService.service', 'milestone'])
+            ->where('assigned_to', $user->id)
+            ->whereIn('status', ['pending', 'in_progress', 'review'])
+            ->orderByRaw("FIELD(priority, 'urgent', 'high', 'medium', 'low')")
+            ->orderBy('due_date')
+            ->get();
+
+        // Tasks pending my review (I'm the reviewer)
+        $pendingMyReview = Task::with(['project', 'assignedTo'])
+            ->where('reviewed_by', $user->id)
+            ->where('status', 'review')
+            ->whereNull('reviewed_at')
+            ->orderBy('due_date')
+            ->get();
+
+        // Tasks I submitted for review (awaiting approval)
+        $mySubmittedForReview = Task::with(['project', 'reviewedBy'])
+            ->where('assigned_to', $user->id)
+            ->where('status', 'review')
+            ->get();
+
+        // Workload/capacity
+        $currentWorkload = $user->getCurrentWorkload();
+        $weeklyCapacity = $user->getAvailableHoursForWeek();
+        $totalCapacity = $currentWorkload + $weeklyCapacity;
+        $utilizationPercentage = $totalCapacity > 0
+            ? round(($currentWorkload / $totalCapacity) * 100)
+            : 0;
+
+        $stats = [
+            'total_assigned' => $myTasks->count(),
+            'urgent_tasks' => $myTasks->where('priority', 'urgent')->count(),
+            'high_priority' => $myTasks->whereIn('priority', ['urgent', 'high'])->count(),
+            'overdue' => $myTasks->filter(fn($t) => $t->isOverdue())->count(),
+            'pending_review' => $pendingMyReview->count(),
+            'awaiting_approval' => $mySubmittedForReview->count(),
+            'current_workload_hours' => $currentWorkload,
+            'available_hours' => $weeklyCapacity,
+            'utilization' => $utilizationPercentage,
+        ];
+
+        // Calendar data - tasks for the next 14 days
+        $calendarTasks = $myTasks->filter(function ($task) {
+            return $task->due_date && $task->due_date->isBetween(now(), now()->addDays(14));
+        })->groupBy(function ($task) {
+            return $task->due_date->format('Y-m-d');
+        });
+
+        // Recently completed (for motivation)
+        $recentlyCompleted = Task::where('assigned_to', $user->id)
+            ->where('status', 'completed')
+            ->orderBy('completed_at', 'desc')
+            ->take(5)
+            ->get();
+
+        return view('admin.dashboard', [
+            'dashboardType' => 'engineer',
+            'stats' => $stats,
+            'myTasks' => $myTasks,
+            'pendingMyReview' => $pendingMyReview,
+            'mySubmittedForReview' => $mySubmittedForReview,
+            'calendarTasks' => $calendarTasks,
+            'recentlyCompleted' => $recentlyCompleted,
+        ]);
+    }
+
+    /**
+     * Get team workload data for API
+     */
+    public function getTeamWorkload()
+    {
+        $users = User::where('is_active', true)
+            ->withCount(['assignedTasks' => fn($q) => $q->whereIn('status', ['pending', 'in_progress'])])
+            ->get()
+            ->map(fn($u) => [
+                'id' => $u->id,
+                'name' => $u->name,
+                'allocated' => $u->getCurrentWorkload(),
+                'capacity' => 40,
+                'utilization' => min(100, round(($u->getCurrentWorkload() / 40) * 100)),
+            ]);
+
+        return response()->json($users);
     }
 
     public function projects()
@@ -251,7 +441,7 @@ class DashboardController extends Controller
                     'icon_color' => 'var(--secondary-color)',
                     'title' => 'New Contract ' . ($contract->status === 'signed' ? 'Signed' : 'Created'),
                     'description' => $contract->title . ' - ' . ($contract->client->name ?? 'Unknown Client'),
-                    'time' => $contract->created_at,
+                    'time' => $contract->created_at->diffForHumans(),
                 ];
             });
 
@@ -269,7 +459,7 @@ class DashboardController extends Controller
                     'icon_color' => '#4caf50',
                     'title' => 'Task Completed',
                     'description' => $task->title,
-                    'time' => $task->completed_at ?? $task->updated_at,
+                    'time' => ($task->completed_at ?? $task->updated_at)->diffForHumans(),
                 ];
             });
 
@@ -285,7 +475,7 @@ class DashboardController extends Controller
                     'icon_color' => '#2196f3',
                     'title' => 'New Project Created',
                     'description' => $project->name,
-                    'time' => $project->created_at,
+                    'time' => $project->created_at->diffForHumans(),
                 ];
             });
 
@@ -293,7 +483,6 @@ class DashboardController extends Controller
             ->merge($recentContracts)
             ->merge($completedTasks)
             ->merge($recentProjects)
-            ->sortByDesc('time')
             ->take(5)
             ->values();
     }

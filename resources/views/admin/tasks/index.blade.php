@@ -25,9 +25,14 @@
                     <i class="fas fa-columns"></i>
                 </a>
             </div>
+            @can('create', App\Models\Task::class)
+            <button type="button" class="btn btn-outline-success" id="batchAssignBtn" style="display: none;" onclick="batchAssignSelected()">
+                <i class="fas fa-user-plus me-1"></i>Auto-Assign Selected
+            </button>
             <a href="{{ route('admin.tasks.create', request()->only('project_id')) }}" class="btn btn-primary">
                 <i class="fas fa-plus me-2"></i>Add New Task
             </a>
+            @endcan
         </div>
     </div>
 
@@ -87,6 +92,39 @@
             </div>
         </form>
     </div>
+
+    <!-- Workload Chart (visible for admins/PMs) -->
+    @if(auth()->user()->hasAnyRole(['administrator', 'project-manager']))
+    <div class="row mb-4">
+        <div class="col-lg-4">
+            <div class="dashboard-card">
+                @include('admin.tasks.partials._workload-chart')
+            </div>
+        </div>
+        <div class="col-lg-8">
+            <div class="dashboard-card h-100">
+                <div class="row">
+                    <div class="col-md-3 text-center border-end">
+                        <h4 class="mb-0 text-primary">{{ $items?->total() ?? ($tasks ? collect($tasks)->flatten()->count() : 0) }}</h4>
+                        <small class="text-muted">Total Tasks</small>
+                    </div>
+                    <div class="col-md-3 text-center border-end">
+                        <h4 class="mb-0 text-warning">{{ $items?->where('status', 'pending')->count() ?? ($tasks['pending'] ?? collect())->count() }}</h4>
+                        <small class="text-muted">Pending</small>
+                    </div>
+                    <div class="col-md-3 text-center border-end">
+                        <h4 class="mb-0 text-danger">{{ $items?->filter(fn($t) => $t->isOverdue())->count() ?? 0 }}</h4>
+                        <small class="text-muted">Overdue</small>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <h4 class="mb-0 text-muted">{{ $items?->whereNull('assigned_to')->count() ?? 0 }}</h4>
+                        <small class="text-muted">Unassigned</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 
     @if($viewType === 'kanban')
         <!-- Kanban Board View -->
@@ -149,6 +187,11 @@
                 <table class="table table-hover align-middle">
                     <thead>
                         <tr>
+                            @can('create', App\Models\Task::class)
+                            <th style="width: 40px;">
+                                <input type="checkbox" class="form-check-input" id="selectAllTasks" onchange="toggleSelectAll(this)">
+                            </th>
+                            @endcan
                             <th>Task</th>
                             <th>Project</th>
                             <th>Service</th>
@@ -162,6 +205,13 @@
                     <tbody>
                         @forelse($items ?? [] as $item)
                             <tr class="{{ $item->isOverdue() ? 'table-danger' : '' }}">
+                                @can('create', App\Models\Task::class)
+                                <td>
+                                    @if(!$item->assigned_to)
+                                    <input type="checkbox" class="form-check-input task-select-checkbox" value="{{ $item->id }}" onchange="updateBatchButton()">
+                                    @endif
+                                </td>
+                                @endcan
                                 <td>
                                     <strong>{{ $item->title }}</strong>
                                     @if($item->isBlocked())
@@ -223,7 +273,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="text-center py-4">
+                                <td colspan="9" class="text-center py-4">
                                     <i class="fas fa-tasks fa-3x text-muted mb-3"></i>
                                     <p class="text-muted">No tasks found</p>
                                 </td>
@@ -280,5 +330,74 @@
     document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
         if (deleteId) document.getElementById('delete-form-' + deleteId).submit();
     });
+
+    // Batch assignment functions
+    function toggleSelectAll(checkbox) {
+        document.querySelectorAll('.task-select-checkbox').forEach(cb => {
+            cb.checked = checkbox.checked;
+        });
+        updateBatchButton();
+    }
+
+    function updateBatchButton() {
+        const selectedCount = document.querySelectorAll('.task-select-checkbox:checked').length;
+        const batchBtn = document.getElementById('batchAssignBtn');
+        if (batchBtn) {
+            if (selectedCount > 0) {
+                batchBtn.style.display = 'inline-block';
+                batchBtn.innerHTML = `<i class="fas fa-user-plus me-1"></i>Auto-Assign (${selectedCount})`;
+            } else {
+                batchBtn.style.display = 'none';
+            }
+        }
+    }
+
+    function batchAssignSelected() {
+        const selectedIds = Array.from(document.querySelectorAll('.task-select-checkbox:checked')).map(cb => cb.value);
+
+        if (selectedIds.length === 0) {
+            alert('Please select at least one task');
+            return;
+        }
+
+        const btn = document.getElementById('batchAssignBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Assigning...';
+
+        fetch('{{ route("admin.tasks.batch-assign") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({ task_ids: selectedIds })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Show success message
+                const successAlert = document.createElement('div');
+                successAlert.className = 'alert alert-success alert-dismissible fade show';
+                successAlert.innerHTML = `
+                    <i class="fas fa-check-circle me-2"></i>${data.message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                document.querySelector('.fade-in').insertBefore(successAlert, document.querySelector('.dashboard-card'));
+
+                // Reload page after a short delay
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                alert(data.message || 'Assignment failed');
+                btn.disabled = false;
+                updateBatchButton();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while assigning tasks');
+            btn.disabled = false;
+            updateBatchButton();
+        });
+    }
 </script>
 @endpush

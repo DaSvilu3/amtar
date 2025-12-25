@@ -25,6 +25,15 @@ class TaskController extends Controller
     public function index(Request $request)
     {
         $query = Task::with(['project', 'assignedTo', 'projectService.service', 'milestone']);
+        $user = Auth::user();
+
+        // Engineers can only see their own assigned tasks
+        if ($user->hasRole('engineer') && !$user->hasAnyRole(['administrator', 'project-manager'])) {
+            $query->where(function ($q) use ($user) {
+                $q->where('assigned_to', $user->id)
+                  ->orWhere('reviewed_by', $user->id);
+            });
+        }
 
         // Filter by project
         if ($request->filled('project_id')) {
@@ -114,6 +123,15 @@ class TaskController extends Controller
 
     public function show(Task $task)
     {
+        $user = Auth::user();
+
+        // Engineers can only view tasks assigned to them or tasks they review
+        if ($user->hasRole('engineer') && !$user->hasAnyRole(['administrator', 'project-manager'])) {
+            if ($task->assigned_to !== $user->id && $task->reviewed_by !== $user->id) {
+                abort(403, 'You can only view tasks assigned to you.');
+            }
+        }
+
         $task->load([
             'project',
             'projectService.service',
@@ -191,6 +209,15 @@ class TaskController extends Controller
      */
     public function updateStatus(Request $request, Task $task)
     {
+        $user = Auth::user();
+
+        // Engineers can only update status of their own tasks
+        if ($user->hasRole('engineer') && !$user->hasAnyRole(['administrator', 'project-manager'])) {
+            if ($task->assigned_to !== $user->id) {
+                abort(403, 'You can only update your own task status.');
+            }
+        }
+
         $validated = $request->validate([
             'status' => 'required|in:pending,in_progress,review,completed,cancelled',
         ]);
@@ -203,7 +230,46 @@ class TaskController extends Controller
         $task->status = $validated['status'];
         $task->save();
 
+        // For non-AJAX requests, redirect back
+        if (!$request->expectsJson()) {
+            return redirect()->back()->with('success', 'Task status updated.');
+        }
+
         return response()->json(['success' => true, 'task' => $task]);
+    }
+
+    /**
+     * Batch auto-assign multiple tasks
+     */
+    public function batchAutoAssign(Request $request)
+    {
+        $validated = $request->validate([
+            'task_ids' => 'required|array',
+            'task_ids.*' => 'exists:tasks,id',
+        ]);
+
+        $tasks = Task::whereIn('id', $validated['task_ids'])
+            ->whereNull('assigned_to')
+            ->get();
+
+        $results = [];
+        foreach ($tasks as $task) {
+            $success = $this->assignmentService->autoAssign($task);
+            $results[] = [
+                'task_id' => $task->id,
+                'task_title' => $task->title,
+                'assigned_to' => $task->fresh()->assignedTo?->name,
+                'success' => $success,
+            ];
+        }
+
+        $successCount = collect($results)->where('success', true)->count();
+
+        return response()->json([
+            'success' => true,
+            'message' => "{$successCount} of {$tasks->count()} tasks assigned successfully.",
+            'results' => $results,
+        ]);
     }
 
     /**
