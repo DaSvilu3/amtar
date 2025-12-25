@@ -4,578 +4,608 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Amtar Consultancy</title>
-    
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    
+
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    
+
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     <style>
         :root {
-            --primary-color: #2f0e13;
-            --secondary-color: #f3c887;
-            --text-light: #ffffff;
-            --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --primary: #2f0e13;
+            --primary-dark: #1a0508;
+            --accent: #f3c887;
+            --accent-light: #f8ddb0;
+            --text-dark: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --bg-light: #f8fafc;
         }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
             font-family: 'Inter', sans-serif;
             min-height: 100vh;
             display: flex;
-            overflow: hidden;
+            background: var(--bg-light);
         }
-        
-        .login-container {
+
+        .login-page {
             display: flex;
             width: 100%;
             min-height: 100vh;
         }
-        
-        /* Left Side - Image */
-        .login-image-section {
-            flex: 1;
-            position: relative;
-            background: linear-gradient(135deg, rgba(47, 14, 19, 0.9), rgba(47, 14, 19, 0.7)), 
-                        url('/theme.jpg') center/cover;
+
+        /* Left Panel - Branding */
+        .brand-panel {
+            flex: 0 0 45%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 50px;
-            color: white;
-        }
-        
-        .login-image-section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: radial-gradient(circle at 20% 80%, rgba(243, 200, 135, 0.3) 0%, transparent 50%),
-                        radial-gradient(circle at 80% 20%, rgba(243, 200, 135, 0.2) 0%, transparent 50%);
-        }
-        
-        .brand-section {
-            position: relative;
-            z-index: 1;
-            text-align: center;
-            animation: fadeInUp 1s ease;
-        }
-        
-        .brand-logo {
-            width: 150px;
-            height: auto;
-            margin-bottom: 30px;
-            /* filter: brightness(0) invert(1); */
-            animation: float 3s ease-in-out infinite;
-        }
-        
-        @keyframes float {
-            0%, 100% {
-                transform: translateY(0);
-            }
-            50% {
-                transform: translateY(-10px);
-            }
-        }
-        
-        .brand-title {
-            font-size: 48px;
-            font-weight: 700;
-            font-family: 'Poppins', sans-serif;
-            margin-bottom: 15px;
-            background: linear-gradient(45deg, var(--text-light), var(--secondary-color));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        
-        .brand-subtitle {
-            font-size: 18px;
-            opacity: 0.9;
-            margin-bottom: 30px;
-        }
-        
-        .brand-features {
-            display: flex;
-            gap: 40px;
-            margin-top: 50px;
-        }
-        
-        .feature {
-            text-align: center;
-            animation: fadeIn 1.5s ease;
-        }
-        
-        .feature-icon {
-            width: 60px;
-            height: 60px;
-            margin: 0 auto 15px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid var(--secondary-color);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-        }
-        
-        .feature:hover .feature-icon {
-            background: var(--secondary-color);
-            transform: scale(1.1);
-        }
-        
-        .feature-icon i {
-            font-size: 24px;
-            color: var(--secondary-color);
-            transition: color 0.3s ease;
-        }
-        
-        .feature:hover .feature-icon i {
-            color: var(--primary-color);
-        }
-        
-        .feature-text {
-            font-size: 14px;
-            opacity: 0.9;
-        }
-        
-        /* Right Side - Login Form */
-        .login-form-section {
-            flex: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 50px;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            position: relative;
-        }
-        
-        .login-form-section::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(243, 200, 135, 0.1) 0%, transparent 70%);
-            animation: rotate 20s linear infinite;
-        }
-        
-        @keyframes rotate {
-            from {
-                transform: rotate(0deg);
-            }
-            to {
-                transform: rotate(360deg);
-            }
-        }
-        
-        .login-form-wrapper {
-            width: 100%;
-            max-width: 450px;
-            position: relative;
-            z-index: 1;
-        }
-        
-        .login-card {
-            background: white;
-            border-radius: 20px;
-            padding: 40px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
-            animation: fadeInRight 1s ease;
-        }
-        
-        .login-header {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-        
-        .login-title {
-            font-size: 32px;
-            font-weight: 700;
-            color: var(--primary-color);
-            margin-bottom: 10px;
-            font-family: 'Poppins', sans-serif;
-        }
-        
-        .login-subtitle {
-            color: #6c757d;
-            font-size: 14px;
-        }
-        
-        .form-group {
-            margin-bottom: 25px;
-        }
-        
-        .form-label {
-            color: var(--primary-color);
-            font-weight: 500;
-            margin-bottom: 8px;
-            font-size: 14px;
-        }
-        
-        .form-control {
-            padding: 12px 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            font-size: 14px;
-            transition: all 0.3s ease;
-        }
-        
-        .form-control:focus {
-            outline: none;
-            border-color: var(--secondary-color);
-            box-shadow: 0 0 0 4px rgba(243, 200, 135, 0.1);
-        }
-        
-        .input-group {
-            position: relative;
-        }
-        
-        .input-icon {
-            position: absolute;
-            right: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #6c757d;
-            font-size: 18px;
-            z-index: 1;
-        }
-        
-        .form-control.with-icon {
-            padding-right: 45px;
-        }
-        
-        .form-check {
-            margin-bottom: 25px;
-        }
-        
-        .form-check-input:checked {
-            background-color: var(--secondary-color);
-            border-color: var(--secondary-color);
-        }
-        
-        .form-check-label {
-            color: #6c757d;
-            font-size: 14px;
-        }
-        
-        .forgot-password {
-            float: right;
-            color: var(--secondary-color);
-            text-decoration: none;
-            font-size: 14px;
-            transition: color 0.3s ease;
-        }
-        
-        .forgot-password:hover {
-            color: var(--primary-color);
-        }
-        
-        .btn-login {
-            width: 100%;
-            padding: 12px;
-            background: linear-gradient(135deg, var(--primary-color), var(--primary-color));
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
         }
-        
-        .btn-login::before {
+
+        .brand-panel::before {
             content: '';
             position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(243, 200, 135, 0.3), transparent);
-            transition: left 0.5s ease;
+            top: -20%;
+            right: -20%;
+            width: 60%;
+            height: 60%;
+            background: radial-gradient(circle, rgba(243, 200, 135, 0.08) 0%, transparent 70%);
+            pointer-events: none;
         }
-        
-        .btn-login:hover::before {
-            left: 100%;
-        }
-        
-        .btn-login:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(47, 14, 19, 0.3);
-        }
-        
-        .divider {
-            text-align: center;
-            margin: 30px 0;
-            position: relative;
-        }
-        
-        .divider::before {
+
+        .brand-panel::after {
             content: '';
             position: absolute;
-            top: 50%;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: #e0e0e0;
+            bottom: -10%;
+            left: -10%;
+            width: 50%;
+            height: 50%;
+            background: radial-gradient(circle, rgba(243, 200, 135, 0.06) 0%, transparent 70%);
+            pointer-events: none;
         }
-        
-        .divider-text {
-            background: white;
-            padding: 0 15px;
-            color: #6c757d;
-            font-size: 13px;
-            position: relative;
+
+        .brand-header {
+            padding: 40px;
         }
-        
-        .social-login {
-            display: flex;
-            gap: 15px;
+
+        .brand-logo {
+            height: 48px;
+            filter: brightness(0) invert(1);
         }
-        
-        .social-btn {
+
+        .brand-content {
             flex: 1;
-            padding: 10px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 60px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .brand-title {
+            font-family: 'Poppins', sans-serif;
+            font-size: 42px;
+            font-weight: 700;
+            color: white;
+            line-height: 1.2;
+            margin-bottom: 16px;
+        }
+
+        .brand-title span {
+            color: var(--accent);
+        }
+
+        .brand-description {
+            font-size: 16px;
+            color: rgba(255,255,255,0.7);
+            line-height: 1.7;
+            max-width: 400px;
+            margin-bottom: 48px;
+        }
+
+        .brand-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            max-width: 420px;
+        }
+
+        .stat-item {
+            text-align: left;
+        }
+
+        .stat-value {
+            font-family: 'Poppins', sans-serif;
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--accent);
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: rgba(255,255,255,0.6);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .brand-footer {
+            padding: 40px 60px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .brand-services {
+            display: flex;
+            gap: 32px;
+        }
+
+        .service-tag {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: rgba(255,255,255,0.7);
+            font-size: 13px;
+        }
+
+        .service-tag i {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            color: var(--accent);
+            font-size: 14px;
+        }
+
+        /* Right Panel - Login Form */
+        .form-panel {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
             background: white;
-            color: var(--primary-color);
+        }
+
+        .form-container {
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .form-header {
+            margin-bottom: 40px;
+        }
+
+        .mobile-logo {
+            display: none;
+            margin-bottom: 32px;
+        }
+
+        .mobile-logo img {
+            height: 40px;
+        }
+
+        .form-title {
+            font-family: 'Poppins', sans-serif;
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+        }
+
+        .form-subtitle {
+            font-size: 15px;
+            color: var(--text-muted);
+        }
+
+        .alert {
+            padding: 14px 16px;
+            border-radius: 10px;
+            margin-bottom: 24px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .alert-danger {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+        }
+
+        .alert-danger i {
+            font-size: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px 16px;
+            padding-left: 48px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 15px;
+            color: var(--text-dark);
+            background: var(--bg-light);
+            transition: all 0.2s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent);
+            background: white;
+            box-shadow: 0 0 0 4px rgba(243, 200, 135, 0.15);
+        }
+
+        .form-input::placeholder {
+            color: #94a3b8;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 16px;
+        }
+
+        .form-input:focus + .input-icon {
+            color: var(--primary);
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-muted);
             cursor: pointer;
-            transition: all 0.3s ease;
+            padding: 4px;
+            font-size: 16px;
+        }
+
+        .password-toggle:hover {
+            color: var(--text-dark);
+        }
+
+        .form-options {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 32px;
+        }
+
+        .checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+        }
+
+        .checkbox-wrapper input {
+            display: none;
+        }
+
+        .checkbox-custom {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border);
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .checkbox-custom i {
+            font-size: 10px;
+            color: white;
+            opacity: 0;
+            transform: scale(0.5);
+            transition: all 0.2s ease;
+        }
+
+        .checkbox-wrapper input:checked + .checkbox-custom {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .checkbox-wrapper input:checked + .checkbox-custom i {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .checkbox-label {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        .forgot-link {
+            font-size: 14px;
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s ease;
+        }
+
+        .forgot-link:hover {
+            color: var(--accent);
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 16px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 10px;
-            font-size: 14px;
-            text-decoration: none;
         }
-        
-        .social-btn:hover {
-            border-color: var(--secondary-color);
-            background: rgba(243, 200, 135, 0.1);
-            transform: translateY(-2px);
+
+        .btn-login:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: 0 8px 24px rgba(47, 14, 19, 0.25);
         }
-        
-        .signup-link {
+
+        .btn-login:active {
+            transform: translateY(0);
+        }
+
+        .form-footer {
+            margin-top: 32px;
             text-align: center;
-            margin-top: 30px;
-            color: #6c757d;
-            font-size: 14px;
         }
-        
-        .signup-link a {
-            color: var(--secondary-color);
+
+        .form-footer-text {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        .form-footer-link {
+            color: var(--primary);
             text-decoration: none;
-            font-weight: 600;
-            transition: color 0.3s ease;
+            font-weight: 500;
         }
-        
-        .signup-link a:hover {
-            color: var(--primary-color);
+
+        .form-footer-link:hover {
+            text-decoration: underline;
         }
-        
-        /* Animations */
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+
+        .copyright {
+            margin-top: 48px;
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-muted);
         }
-        
-        @keyframes fadeInRight {
-            from {
-                opacity: 0;
-                transform: translateX(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-        
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-            to {
-                opacity: 1;
-            }
-        }
-        
-        /* Alert Styles */
-        .alert {
-            border-radius: 10px;
-            padding: 12px 15px;
-            margin-bottom: 20px;
-            font-size: 14px;
-            animation: fadeInUp 0.5s ease;
-        }
-        
-        .alert-danger {
-            background: #fee;
-            border: 1px solid #fcc;
-            color: #c33;
-        }
-        
+
         /* Responsive */
-        @media (max-width: 992px) {
-            .login-image-section {
+        @media (max-width: 1024px) {
+            .brand-panel {
+                flex: 0 0 40%;
+            }
+
+            .brand-content {
+                padding: 40px;
+            }
+
+            .brand-title {
+                font-size: 36px;
+            }
+
+            .brand-footer {
+                padding: 32px 40px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .brand-panel {
                 display: none;
             }
-            
-            .login-form-section {
-                flex: 1;
+
+            .form-panel {
+                padding: 24px;
             }
-        }
-        
-        @media (max-width: 576px) {
-            .login-form-section {
-                padding: 20px;
+
+            .mobile-logo {
+                display: block;
             }
-            
-            .login-card {
-                padding: 30px 20px;
+
+            .form-header {
+                margin-bottom: 32px;
             }
-            
-            .login-title {
-                font-size: 28px;
+
+            .form-title {
+                font-size: 24px;
             }
         }
     </style>
 </head>
 <body>
-    <div class="login-container">
-        <!-- Left Side - Image Section -->
-        <div class="login-image-section">
-            <div class="brand-section">
-                <img src="/logo.jpg" alt="Amtar Logo" class="brand-logo">
-                <h1 class="brand-title">AMTAR</h1>
-                <p class="brand-subtitle">Engineering Consultancy Excellence</p>
-                
-                <div class="brand-features">
-                    <div class="feature">
-                        <div class="feature-icon">
-                            <i class="fas fa-hard-hat"></i>
-                        </div>
-                        <div class="feature-text">Engineering</div>
+    <div class="login-page">
+        <!-- Left Panel - Branding -->
+        <div class="brand-panel">
+            <div class="brand-header">
+                <img src="/logo-no-backgreound.png" alt="Amtar" class="brand-logo">
+            </div>
+
+            <div class="brand-content">
+                <h1 class="brand-title">
+                    Professional<br>
+                    <span>Engineering</span><br>
+                    Consultancy
+                </h1>
+                <p class="brand-description">
+                    Delivering excellence in engineering design, project management, and construction supervision across the Gulf region since 2010.
+                </p>
+
+                <div class="brand-stats">
+                    <div class="stat-item">
+                        <div class="stat-value">150+</div>
+                        <div class="stat-label">Projects</div>
                     </div>
-                    <div class="feature">
-                        <div class="feature-icon">
-                            <i class="fas fa-palette"></i>
-                        </div>
-                        <div class="feature-text">Design</div>
+                    <div class="stat-item">
+                        <div class="stat-value">50+</div>
+                        <div class="stat-label">Clients</div>
                     </div>
-                    <div class="feature">
-                        <div class="feature-icon">
-                            <i class="fas fa-building"></i>
-                        </div>
-                        <div class="feature-text">Construction</div>
+                    <div class="stat-item">
+                        <div class="stat-value">15+</div>
+                        <div class="stat-label">Years</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="brand-footer">
+                <div class="brand-services">
+                    <div class="service-tag">
+                        <i class="fas fa-drafting-compass"></i>
+                        <span>Interior Design</span>
+                    </div>
+                    <div class="service-tag">
+                        <i class="fas fa-hard-hat"></i>
+                        <span>Engineering</span>
+                    </div>
+                    <div class="service-tag">
+                        <i class="fas fa-clipboard-check"></i>
+                        <span>Supervision</span>
                     </div>
                 </div>
             </div>
         </div>
-        
-        <!-- Right Side - Login Form -->
-        <div class="login-form-section">
-            <div class="login-form-wrapper">
-                <div class="login-card">
-                    <div class="login-header">
-                        <h2 class="login-title">Welcome Back</h2>
-                        <p class="login-subtitle">Please login to your account</p>
+
+        <!-- Right Panel - Login Form -->
+        <div class="form-panel">
+            <div class="form-container">
+                <div class="mobile-logo">
+                    <img src="/logo-no-backgreound.png" alt="Amtar">
+                </div>
+
+                <div class="form-header">
+                    <h2 class="form-title">Welcome back</h2>
+                    <p class="form-subtitle">Sign in to access your dashboard</p>
+                </div>
+
+                @if ($errors->any())
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span>{{ $errors->first() }}</span>
                     </div>
-                    
-                    @if ($errors->any())
-                        <div class="alert alert-danger">
-                            {{ $errors->first() }}
+                @endif
+
+                <form method="POST" action="{{ route('login') }}">
+                    @csrf
+
+                    <div class="form-group">
+                        <label class="form-label">Email Address</label>
+                        <div class="input-wrapper">
+                            <input type="email"
+                                   class="form-input"
+                                   name="email"
+                                   placeholder="name@company.com"
+                                   value="{{ old('email') }}"
+                                   required
+                                   autofocus>
+                            <i class="fas fa-envelope input-icon"></i>
                         </div>
-                    @endif
-                    
-                    <form method="POST" action="{{ route('login') }}">
-                        @csrf
-                        
-                        <div class="form-group">
-                            <label class="form-label">Email Address</label>
-                            <div class="input-group">
-                                <input type="email" 
-                                       class="form-control with-icon" 
-                                       name="email" 
-                                       placeholder="Enter your email"
-                                       value="{{ old('email') }}"
-                                       required>
-                                <i class="fas fa-envelope input-icon"></i>
-                            </div>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label class="form-label">Password</label>
-                            <div class="input-group">
-                                <input type="password" 
-                                       class="form-control with-icon" 
-                                       name="password" 
-                                       placeholder="Enter your password"
-                                       required>
-                                <i class="fas fa-lock input-icon"></i>
-                            </div>
-                        </div>
-                        
-                        <div class="form-check">
-                            <input type="checkbox" class="form-check-input" id="remember" name="remember">
-                            <label class="form-check-label" for="remember">
-                                Remember me
-                            </label>
-                            <a href="#" class="forgot-password">Forgot Password?</a>
-                        </div>
-                        
-                        <button type="submit" class="btn-login">
-                            <i class="fas fa-sign-in-alt me-2"></i> Login to Dashboard
-                        </button>
-                    </form>
-                    
-                    <div class="divider">
-                        <span class="divider-text">OR</span>
                     </div>
-                    
-                    <div class="social-login">
-                        <a href="#" class="social-btn">
-                            <i class="fab fa-google"></i>
-                            Google
-                        </a>
-                        <a href="#" class="social-btn">
-                            <i class="fab fa-microsoft"></i>
-                            Microsoft
-                        </a>
+
+                    <div class="form-group">
+                        <label class="form-label">Password</label>
+                        <div class="input-wrapper">
+                            <input type="password"
+                                   class="form-input"
+                                   name="password"
+                                   id="password"
+                                   placeholder="Enter your password"
+                                   required>
+                            <i class="fas fa-lock input-icon"></i>
+                            <button type="button" class="password-toggle" onclick="togglePassword()">
+                                <i class="fas fa-eye" id="toggleIcon"></i>
+                            </button>
+                        </div>
                     </div>
-                    
-                    <div class="signup-link">
-                        Don't have an account? <a href="#">Contact Administrator</a>
+
+                    <div class="form-options">
+                        <label class="checkbox-wrapper">
+                            <input type="checkbox" name="remember">
+                            <span class="checkbox-custom"><i class="fas fa-check"></i></span>
+                            <span class="checkbox-label">Keep me signed in</span>
+                        </label>
+                        <a href="#" class="forgot-link">Forgot password?</a>
                     </div>
+
+                    <button type="submit" class="btn-login">
+                        Sign In
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                </form>
+
+                <div class="form-footer">
+                    <p class="form-footer-text">
+                        Need an account? <a href="#" class="form-footer-link">Contact Administrator</a>
+                    </p>
+                </div>
+
+                <div class="copyright">
+                    &copy; {{ date('Y') }} Amtar Consultancy. All rights reserved.
                 </div>
             </div>
         </div>
     </div>
-    
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        function togglePassword() {
+            const passwordInput = document.getElementById('password');
+            const toggleIcon = document.getElementById('toggleIcon');
+
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleIcon.classList.remove('fa-eye');
+                toggleIcon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                toggleIcon.classList.remove('fa-eye-slash');
+                toggleIcon.classList.add('fa-eye');
+            }
+        }
+    </script>
 </body>
 </html>
