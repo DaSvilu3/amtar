@@ -614,6 +614,32 @@
                 </div>
             </div>
 
+            <!-- Resource Management -->
+            <div class="menu-section">
+                <div class="menu-section-title">Resources</div>
+
+                <div class="menu-item">
+                    <a href="{{ route('admin.skills.index') }}" class="menu-link {{ request()->is('admin/skills*') ? 'active' : '' }}">
+                        <i class="fas fa-graduation-cap menu-icon"></i>
+                        <span class="menu-text">Skills</span>
+                    </a>
+                </div>
+
+                <div class="menu-item">
+                    <a href="{{ route('admin.task-templates.index') }}" class="menu-link {{ request()->is('admin/task-templates*') ? 'active' : '' }}">
+                        <i class="fas fa-clipboard-list menu-icon"></i>
+                        <span class="menu-text">Task Templates</span>
+                    </a>
+                </div>
+
+                <div class="menu-item">
+                    <a href="{{ route('admin.tasks.pending-reviews') }}" class="menu-link {{ request()->is('admin/tasks/pending-reviews*') ? 'active' : '' }}">
+                        <i class="fas fa-clipboard-check menu-icon"></i>
+                        <span class="menu-text">Pending Reviews</span>
+                    </a>
+                </div>
+            </div>
+
             <!-- Communication & Templates -->
             <div class="menu-section">
                 <div class="menu-section-title">Templates</div>

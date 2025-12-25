@@ -160,9 +160,40 @@
                             <span>{{ $task->assignedTo->name }}</span>
                         </div>
                     @else
-                        <p class="text-muted mb-0">Unassigned</p>
+                        <p class="text-muted mb-2">Unassigned</p>
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="autoAssignTask()">
+                            <i class="fas fa-magic me-1"></i>Auto-Assign
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="showSuggestions()">
+                            <i class="fas fa-users me-1"></i>Suggestions
+                        </button>
                     @endif
                 </div>
+
+                @if($task->reviewedBy)
+                <div class="mb-3">
+                    <label class="text-muted small">Reviewer</label>
+                    <div class="d-flex align-items-center">
+                        <div style="width: 36px; height: 36px; border-radius: 50%; background: #e0f2fe; color: #0369a1; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; margin-right: 10px;">
+                            {{ strtoupper(substr($task->reviewedBy->name, 0, 2)) }}
+                        </div>
+                        <span>{{ $task->reviewedBy->name }}</span>
+                    </div>
+                </div>
+                @endif
+
+                @if($task->requires_review)
+                <div class="mb-3">
+                    <span class="badge bg-warning"><i class="fas fa-eye me-1"></i>Review Required</span>
+                </div>
+                @endif
+
+                @if($task->review_notes)
+                <div class="mb-3">
+                    <label class="text-muted small">Review Notes</label>
+                    <p class="mb-0 small">{{ $task->review_notes }}</p>
+                </div>
+                @endif
 
                 <hr>
 
@@ -225,9 +256,115 @@
 </div>
 @endsection
 
+<!-- Assignment Suggestions Modal -->
+<div class="modal fade" id="suggestionsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-users me-2"></i>Assignment Suggestions</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="suggestionsLoading" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2">Finding best candidates...</p>
+                </div>
+                <div id="suggestionsList" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 @push('styles')
 <style>
     .btn-primary { background-color: var(--primary-color); border-color: var(--primary-color); }
     .btn-primary:hover { background-color: var(--hover-color); border-color: var(--hover-color); }
+    .suggestion-card { transition: all 0.2s ease; cursor: pointer; }
+    .suggestion-card:hover { transform: translateX(5px); background: #f8f9fa; }
 </style>
+@endpush
+
+@push('scripts')
+<script>
+    const suggestionsModal = new bootstrap.Modal(document.getElementById('suggestionsModal'));
+
+    function autoAssignTask() {
+        if (!confirm('Auto-assign this task to the best available consultant?')) return;
+
+        fetch('{{ route("admin.tasks.auto-assign", $task) }}', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Task assigned to ' + data.assigned_to);
+                location.reload();
+            } else {
+                alert(data.message || 'Could not find a suitable consultant');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred');
+        });
+    }
+
+    function showSuggestions() {
+        document.getElementById('suggestionsLoading').style.display = 'block';
+        document.getElementById('suggestionsList').style.display = 'none';
+        suggestionsModal.show();
+
+        fetch('{{ route("admin.tasks.suggestions", $task) }}')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('suggestionsLoading').style.display = 'none';
+            const list = document.getElementById('suggestionsList');
+            list.style.display = 'block';
+
+            if (data.suggestions && data.suggestions.length > 0) {
+                let html = '<div class="list-group">';
+                data.suggestions.forEach(s => {
+                    html += `
+                        <div class="list-group-item suggestion-card" onclick="assignTo(${s.user_id})">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center">
+                                    <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--secondary-color); color: var(--primary-color); display: flex; align-items: center; justify-content: center; font-weight: 600; margin-right: 12px;">
+                                        ${s.user_name.substring(0, 2).toUpperCase()}
+                                    </div>
+                                    <div>
+                                        <strong>${s.user_name}</strong>
+                                        <br><small class="text-muted">${s.user_email}</small>
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-success mb-1">Score: ${s.score}</span>
+                                    <br><small class="text-muted">${s.available_hours}h available | ${s.current_workload}h workload</small>
+                                </div>
+                            </div>
+                            ${s.matching_skills.length > 0 ? '<div class="mt-2"><small class="text-muted">Skills: ' + s.matching_skills.join(', ') + '</small></div>' : ''}
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                list.innerHTML = html;
+            } else {
+                list.innerHTML = '<div class="alert alert-info">No suitable candidates found based on skills and availability.</div>';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('suggestionsList').innerHTML = '<div class="alert alert-danger">Error loading suggestions</div>';
+        });
+    }
+
+    function assignTo(userId) {
+        // You can implement manual assignment here
+        alert('Manual assignment feature - assign to user ID: ' + userId);
+        suggestionsModal.hide();
+    }
+</script>
 @endpush

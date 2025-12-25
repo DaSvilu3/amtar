@@ -18,6 +18,8 @@ use App\Http\Controllers\Admin\TaskController;
 use App\Http\Controllers\Admin\MilestoneController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ServiceManagementController;
+use App\Http\Controllers\Admin\SkillController;
+use App\Http\Controllers\Admin\TaskTemplateController;
 
 Route::get('/', function () {
     return redirect('/login');
@@ -70,9 +72,11 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
     });
 
     // Tasks & Milestones
+    // Note: pending-reviews must come before the resource routes to avoid being caught by {task}
+    Route::get('tasks/pending-reviews', [TaskController::class, 'pendingReviews'])->name('tasks.pending-reviews');
+    Route::post('tasks/reorder', [TaskController::class, 'reorder'])->name('tasks.reorder');
     Route::resource('tasks', TaskController::class);
     Route::patch('tasks/{task}/status', [TaskController::class, 'updateStatus'])->name('tasks.update-status');
-    Route::post('tasks/reorder', [TaskController::class, 'reorder'])->name('tasks.reorder');
     Route::get('api/projects/{project}/tasks', [TaskController::class, 'getProjectTasks'])->name('api.projects.tasks');
 
     // Task Assignment & Review Routes
@@ -82,7 +86,6 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
     Route::post('tasks/{task}/submit-review', [TaskController::class, 'submitForReview'])->name('tasks.submit-review');
     Route::post('tasks/{task}/approve', [TaskController::class, 'approveReview'])->name('tasks.approve');
     Route::post('tasks/{task}/reject', [TaskController::class, 'rejectReview'])->name('tasks.reject');
-    Route::get('tasks/pending-reviews', [TaskController::class, 'pendingReviews'])->name('tasks.pending-reviews');
 
     Route::resource('milestones', MilestoneController::class);
     Route::post('milestones/generate/{project}', [MilestoneController::class, 'generateFromProject'])->name('milestones.generate');
@@ -118,6 +121,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
     Route::get('contracts/{contract}/download-pdf', [ContractController::class, 'downloadPdf'])->name('contracts.download-pdf');
     Route::get('contracts/{contract}/preview', [ContractController::class, 'preview'])->name('contracts.preview');
     Route::resource('document-types', DocumentTypeController::class);
+
+    // Skills Management
+    Route::resource('skills', SkillController::class)->except(['show']);
+
+    // Task Templates Management
+    Route::resource('task-templates', TaskTemplateController::class);
 
     // Service Management Routes
     Route::prefix('services')->name('services.')->group(function () {
