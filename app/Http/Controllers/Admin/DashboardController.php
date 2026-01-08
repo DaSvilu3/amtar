@@ -239,189 +239,215 @@ class DashboardController extends Controller
         return response()->json($users);
     }
 
-    public function projects()
+    /**
+     * Approvals page - Task/milestone approval workflow
+     */
+    public function approvals()
     {
-        $stats = [
-            'total' => Project::count(),
-            'planning' => Project::where('status', 'planning')->count(),
-            'in_progress' => Project::where('status', 'in_progress')->count(),
-            'on_hold' => Project::where('status', 'on_hold')->count(),
-            'completed' => Project::where('status', 'completed')->count(),
-        ];
+        $user = auth()->user();
 
-        // Projects by main service
-        $projectsByService = Project::select('main_service_id', DB::raw('count(*) as count'))
-            ->with('mainService')
-            ->groupBy('main_service_id')
+        // Tasks pending approval (status = review)
+        $pendingTaskApprovals = Task::with(['project', 'assignedTo', 'reviewedBy'])
+            ->where('status', 'review')
+            ->orderByRaw("FIELD(priority, 'urgent', 'high', 'medium', 'low')")
+            ->orderBy('due_date')
             ->get();
 
-        // Recent projects
-        $recentProjects = Project::with(['client', 'projectManager'])
-            ->orderBy('created_at', 'desc')
+        // Milestones pending approval
+        $pendingMilestoneApprovals = Milestone::with(['project'])
+            ->where('status', 'pending_approval')
+            ->orderBy('target_date')
+            ->get();
+
+        // Recently approved tasks
+        $recentlyApproved = Task::with(['project', 'assignedTo', 'reviewedBy'])
+            ->where('status', 'completed')
+            ->whereNotNull('reviewed_at')
+            ->orderBy('reviewed_at', 'desc')
             ->take(10)
             ->get();
 
-        // Upcoming deadlines
-        $upcomingDeadlines = Project::where('end_date', '>=', now())
-            ->where('end_date', '<=', now()->addMonth())
-            ->where('status', '!=', 'completed')
-            ->orderBy('end_date')
-            ->take(5)
+        // Recently rejected
+        $recentlyRejected = Task::with(['project', 'assignedTo', 'reviewedBy'])
+            ->where('status', 'rejected')
+            ->orderBy('updated_at', 'desc')
+            ->take(10)
             ->get();
 
-        return view('admin.dashboards.projects', compact('stats', 'projectsByService', 'recentProjects', 'upcomingDeadlines'));
+        $stats = [
+            'pending_tasks' => $pendingTaskApprovals->count(),
+            'pending_milestones' => $pendingMilestoneApprovals->count(),
+            'approved_today' => Task::where('status', 'completed')
+                ->whereDate('reviewed_at', today())
+                ->count(),
+            'rejected_today' => Task::where('status', 'rejected')
+                ->whereDate('updated_at', today())
+                ->count(),
+        ];
+
+        return view('admin.approvals', compact(
+            'pendingTaskApprovals',
+            'pendingMilestoneApprovals',
+            'recentlyApproved',
+            'recentlyRejected',
+            'stats'
+        ));
     }
 
-    public function services()
+    /**
+     * Analytics page - Project/task analytics with charts
+     */
+    public function analytics()
     {
-        // Service statistics
-        $projectServices = DB::table('project_services')
-            ->join('services', 'project_services.service_id', '=', 'services.id')
-            ->join('service_stages', 'services.service_stage_id', '=', 'service_stages.id')
-            ->select('service_stages.name as stage_name', DB::raw('count(*) as count'))
-            ->groupBy('service_stages.id', 'service_stages.name')
+        // Project status distribution
+        $projectsByStatus = Project::select('status', DB::raw('count(*) as count'))
+            ->groupBy('status')
+            ->get();
+
+        // Tasks by status
+        $tasksByStatus = Task::select('status', DB::raw('count(*) as count'))
+            ->groupBy('status')
+            ->get();
+
+        // Monthly task completion trend (last 6 months)
+        $monthlyTaskCompletion = Task::where('status', 'completed')
+            ->where('completed_at', '>=', now()->subMonths(6))
+            ->select(
+                DB::raw('YEAR(completed_at) as year'),
+                DB::raw('MONTH(completed_at) as month'),
+                DB::raw('count(*) as count')
+            )
+            ->groupBy('year', 'month')
+            ->orderBy('year')
+            ->orderBy('month')
+            ->get();
+
+        // Projects by client
+        $projectsByClient = Project::with('client')
+            ->select('client_id', DB::raw('count(*) as count'))
+            ->groupBy('client_id')
             ->orderBy('count', 'desc')
             ->take(10)
             ->get();
 
-        // Completion rates by service stage
-        $completionRates = DB::table('project_services')
-            ->join('service_stages', 'project_services.service_stage_id', '=', 'service_stages.id')
-            ->select(
-                'service_stages.name',
-                DB::raw('count(*) as total'),
-                DB::raw('sum(case when is_completed = 1 then 1 else 0 end) as completed')
-            )
-            ->groupBy('service_stages.id', 'service_stages.name')
+        // Task completion rate by user
+        $userPerformance = User::where('is_active', true)
+            ->withCount([
+                'assignedTasks as total_tasks',
+                'assignedTasks as completed_tasks' => fn($q) => $q->where('status', 'completed'),
+                'assignedTasks as overdue_tasks' => fn($q) => $q->where('due_date', '<', now())->whereNotIn('status', ['completed', 'cancelled']),
+            ])
+            ->having('total_tasks', '>', 0)
+            ->orderBy('completed_tasks', 'desc')
+            ->take(10)
             ->get()
-            ->map(function ($item) {
-                $item->rate = $item->total > 0 ? round(($item->completed / $item->total) * 100) : 0;
-                return $item;
-            });
+            ->map(fn($u) => [
+                'name' => $u->name,
+                'total' => $u->total_tasks,
+                'completed' => $u->completed_tasks,
+                'overdue' => $u->overdue_tasks,
+                'completion_rate' => round(($u->completed_tasks / $u->total_tasks) * 100),
+            ]);
 
-        return view('admin.dashboards.services', compact('projectServices', 'completionRates'));
-    }
-
-    public function pipeline()
-    {
-        // Pipeline stages
-        $pipeline = [
-            'prospect' => Client::where('status', 'prospect')->count(),
-            'planning' => Project::where('status', 'planning')->count(),
-            'in_progress' => Project::where('status', 'in_progress')->count(),
-            'completed' => Project::where('status', 'completed')->count(),
-        ];
-
-        // Monthly project count
-        $monthlyProjects = Project::select(
-            DB::raw('MONTH(created_at) as month'),
-            DB::raw('count(*) as count')
-        )
-            ->whereYear('created_at', now()->year)
-            ->groupBy(DB::raw('MONTH(created_at)'))
-            ->orderBy('month')
+        // Average task duration by priority
+        $avgDurationByPriority = Task::where('status', 'completed')
+            ->whereNotNull('completed_at')
+            ->select('priority', DB::raw('AVG(DATEDIFF(completed_at, created_at)) as avg_days'))
+            ->groupBy('priority')
             ->get();
 
-        // Contract values by month
-        $monthlyRevenue = Contract::select(
-            DB::raw('MONTH(created_at) as month'),
-            DB::raw('sum(value) as total')
-        )
-            ->whereYear('created_at', now()->year)
-            ->whereIn('status', ['active', 'signed'])
-            ->groupBy(DB::raw('MONTH(created_at)'))
-            ->orderBy('month')
-            ->get();
-
-        return view('admin.dashboards.pipeline', compact('pipeline', 'monthlyProjects', 'monthlyRevenue'));
-    }
-
-    public function finance()
-    {
-        // Financial overview
-        $stats = [
-            'total_contract_value' => Contract::whereIn('status', ['active', 'signed'])->sum('value'),
-            'this_month' => Contract::whereMonth('created_at', now()->month)
-                ->whereYear('created_at', now()->year)
-                ->whereIn('status', ['active', 'signed'])
-                ->sum('value'),
-            'total_contracts' => Contract::count(),
-            'active_contracts' => Contract::whereIn('status', ['active', 'signed'])->count(),
-        ];
-
-        // Contracts by status
-        $contractsByStatus = Contract::select('status', DB::raw('count(*) as count'), DB::raw('sum(value) as total'))
-            ->groupBy('status')
-            ->get();
-
-        // Recent contracts
-        $recentContracts = Contract::with(['client', 'project'])
-            ->orderBy('created_at', 'desc')
-            ->take(10)
-            ->get();
-
-        return view('admin.dashboards.finance', compact('stats', 'contractsByStatus', 'recentContracts'));
-    }
-
-    public function hr()
-    {
-        // Team statistics
-        $stats = [
-            'total_users' => User::count(),
-            'active_users' => User::where('is_active', true)->count(),
-            'project_managers' => User::whereHas('roles', function ($q) {
-                $q->where('slug', 'project-manager');
-            })->count(),
-        ];
-
-        // Users with task counts
-        $userTaskCounts = User::withCount([
-            'assignedTasks',
-            'assignedTasks as pending_tasks_count' => function ($q) {
-                $q->where('status', 'pending');
-            },
-            'assignedTasks as in_progress_tasks_count' => function ($q) {
-                $q->where('status', 'in_progress');
-            }
-        ])
-            ->where('is_active', true)
-            ->orderBy('assigned_tasks_count', 'desc')
-            ->take(10)
-            ->get();
-
-        return view('admin.dashboards.hr', compact('stats', 'userTaskCounts'));
-    }
-
-    public function performance()
-    {
-        // Task completion stats
-        $taskStats = [
-            'total' => Task::count(),
-            'completed' => Task::where('status', 'completed')->count(),
-            'overdue' => Task::where('due_date', '<', now())
-                ->where('status', '!=', 'completed')
-                ->count(),
-        ];
-        $taskStats['completion_rate'] = $taskStats['total'] > 0
-            ? round(($taskStats['completed'] / $taskStats['total']) * 100)
-            : 0;
-
-        // Milestone completion
-        $milestoneStats = DB::table('milestones')
+        // Contract value by month
+        $monthlyContractValue = Contract::whereYear('created_at', now()->year)
             ->select(
-                DB::raw('count(*) as total'),
-                DB::raw('sum(case when status = "completed" then 1 else 0 end) as completed')
+                DB::raw('MONTH(created_at) as month'),
+                DB::raw('SUM(value) as total')
             )
-            ->first();
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get();
 
-        // Average project duration
-        $avgDuration = Project::where('status', 'completed')
-            ->whereNotNull('actual_start_date')
-            ->whereNotNull('actual_end_date')
-            ->select(DB::raw('AVG(DATEDIFF(actual_end_date, actual_start_date)) as avg_days'))
-            ->first();
+        $stats = [
+            'total_projects' => Project::count(),
+            'total_tasks' => Task::count(),
+            'total_clients' => Client::count(),
+            'total_contract_value' => Contract::whereIn('status', ['active', 'signed'])->sum('value'),
+            'avg_project_duration' => Project::where('status', 'completed')
+                ->whereNotNull('actual_start_date')
+                ->whereNotNull('actual_end_date')
+                ->selectRaw('AVG(DATEDIFF(actual_end_date, actual_start_date)) as avg')
+                ->value('avg') ?? 0,
+        ];
 
-        return view('admin.dashboards.performance', compact('taskStats', 'milestoneStats', 'avgDuration'));
+        return view('admin.analytics', compact(
+            'projectsByStatus',
+            'tasksByStatus',
+            'monthlyTaskCompletion',
+            'projectsByClient',
+            'userPerformance',
+            'avgDurationByPriority',
+            'monthlyContractValue',
+            'stats'
+        ));
+    }
+
+    /**
+     * Reports page - Report generation interface
+     */
+    public function reports()
+    {
+        // Available report types
+        $reportTypes = [
+            [
+                'id' => 'project-summary',
+                'name' => 'Project Summary Report',
+                'description' => 'Overview of all projects with status, progress, and key metrics',
+                'icon' => 'fa-project-diagram',
+            ],
+            [
+                'id' => 'task-status',
+                'name' => 'Task Status Report',
+                'description' => 'Detailed breakdown of tasks by status, priority, and assignee',
+                'icon' => 'fa-tasks',
+            ],
+            [
+                'id' => 'team-performance',
+                'name' => 'Team Performance Report',
+                'description' => 'Individual and team productivity metrics',
+                'icon' => 'fa-users',
+            ],
+            [
+                'id' => 'financial',
+                'name' => 'Financial Report',
+                'description' => 'Contract values, invoicing, and revenue analysis',
+                'icon' => 'fa-chart-line',
+            ],
+            [
+                'id' => 'client-activity',
+                'name' => 'Client Activity Report',
+                'description' => 'Client engagement and project history',
+                'icon' => 'fa-user-tie',
+            ],
+            [
+                'id' => 'milestone-tracking',
+                'name' => 'Milestone Tracking Report',
+                'description' => 'Milestone completion rates and timeline analysis',
+                'icon' => 'fa-flag-checkered',
+            ],
+        ];
+
+        // Quick stats for the reports page
+        $stats = [
+            'projects_this_month' => Project::whereMonth('created_at', now()->month)->count(),
+            'tasks_completed_this_month' => Task::where('status', 'completed')
+                ->whereMonth('completed_at', now()->month)->count(),
+            'revenue_this_month' => Contract::whereMonth('created_at', now()->month)
+                ->whereIn('status', ['active', 'signed'])->sum('value'),
+        ];
+
+        // Recent generated reports (placeholder for future implementation)
+        $recentReports = [];
+
+        return view('admin.reports', compact('reportTypes', 'stats', 'recentReports'));
     }
 
     private function getRecentActivities()

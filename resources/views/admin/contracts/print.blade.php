@@ -450,11 +450,11 @@
 
         <!-- Footer -->
         <div class="footer">
-            <strong>AMTAR Engineering & Design Consultancy</strong>
+            <strong>{{ config('project.company.name', 'AMTAR Engineering & Design Consultancy') }}</strong>
             <div class="footer-content">
-                <span>Email: info@amtar.om</span>
-                <span>Phone: +968 XXXX XXXX</span>
-                <span>Website: www.amtar.om</span>
+                <span>Email: {{ config('project.company.email', 'info@amtar.om') }}</span>
+                <span>Phone: {{ config('project.company.phone', '+968 XXXXXXXX') }}</span>
+                <span>Website: {{ config('project.company.website', 'www.amtar.om') }}</span>
             </div>
         </div>
     </div>

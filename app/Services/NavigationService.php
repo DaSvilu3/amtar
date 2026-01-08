@@ -17,6 +17,7 @@ class NavigationService
     {
         return array_filter([
             $this->getMainSection(),
+            $this->getAnalyticsSection(),
             $this->getServicesSection(),
             $this->getResourcesSection(),
             $this->getTemplatesSection(),
@@ -37,6 +38,21 @@ class NavigationService
         ]);
 
         return count($items) > 0 ? ['title' => null, 'items' => $items] : null;
+    }
+
+    protected function getAnalyticsSection(): ?array
+    {
+        if (!$this->canAccessAnalytics()) {
+            return null;
+        }
+
+        $items = [
+            $this->menuItem('Analytics', 'admin/analytics*', 'fa-chart-bar', 'admin.analytics'),
+            $this->menuItem('Reports', 'admin/reports*', 'fa-file-alt', 'admin.reports'),
+            $this->menuItem('Approvals', 'admin/approvals*', 'fa-check-circle', 'admin.approvals'),
+        ];
+
+        return ['title' => 'Analytics', 'items' => $items];
     }
 
     protected function getServicesSection(): ?array
@@ -97,6 +113,7 @@ class NavigationService
             $this->menuItem('Users', 'admin/users*', 'fa-users-cog', 'admin.users.index'),
             $this->menuItem('Roles', 'admin/roles*', 'fa-user-shield', 'admin.roles.index'),
             $this->menuItem('Document Types', 'admin/document-types*', 'fa-file-alt', 'admin.document-types.index'),
+            $this->menuItem('Integrations', 'admin/integrations*', 'fa-plug', 'admin.integrations.index'),
             $this->menuItem('Settings', 'admin/settings*', 'fa-cog', 'admin.settings.index'),
         ];
 
@@ -161,6 +178,12 @@ class NavigationService
     protected function canAccessMilestones(): bool
     {
         // Only admin and PM can access milestones
+        return $this->isAdmin() || $this->isProjectManager();
+    }
+
+    protected function canAccessAnalytics(): bool
+    {
+        // Admin and PM can access analytics, reports, and approvals
         return $this->isAdmin() || $this->isProjectManager();
     }
 

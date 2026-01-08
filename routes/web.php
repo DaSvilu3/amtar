@@ -115,12 +115,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
         Route::post('files', [FileController::class, 'store'])->name('files.store');
         Route::get('files/{file}', [FileController::class, 'show'])->name('files.show');
 
-        // Projects dashboard (view project stats)
-        Route::get('/dashboards/projects', [DashboardController::class, 'projects'])->name('dashboards.projects');
     });
 
     // ============================================
-    // PM + ADMIN: Additional routes (files edit/delete, dashboards)
+    // PM + ADMIN: Additional routes (files edit/delete, approvals)
     // ============================================
     Route::middleware(['role:administrator,project-manager'])->group(function () {
         // Files - edit and delete
@@ -129,16 +127,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
         Route::patch('files/{file}', [FileController::class, 'update']);
         Route::delete('files/{file}', [FileController::class, 'destroy'])->name('files.destroy');
 
-        // Dashboards
-        Route::get('/dashboards/finance', [DashboardController::class, 'finance'])->name('dashboards.finance');
-        Route::get('/dashboards/pipeline', [DashboardController::class, 'pipeline'])->name('dashboards.pipeline');
-        Route::get('/dashboards/performance', [DashboardController::class, 'performance'])->name('dashboards.performance');
-        Route::get('/dashboards/services', [DashboardController::class, 'services'])->name('dashboards.services');
-
         // Approvals
-        Route::get('/approvals', function () {
-            return view('admin.approvals');
-        })->name('approvals');
+        Route::get('/approvals', [DashboardController::class, 'approvals'])->name('approvals');
     });
 
     // ============================================
@@ -163,20 +153,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
         Route::resource('skills', SkillController::class)->except(['show']);
         Route::resource('task-templates', TaskTemplateController::class);
 
-        // HR Dashboard
-        Route::get('/dashboards/hr', [DashboardController::class, 'hr'])->name('dashboards.hr');
-
         // Team Workload API
         Route::get('/api/team-workload', [DashboardController::class, 'getTeamWorkload'])->name('api.team-workload');
 
         // Reports & Analytics
-        Route::get('/analytics', function () {
-            return view('admin.analytics');
-        })->name('analytics');
-
-        Route::get('/reports', function () {
-            return view('admin.reports');
-        })->name('reports');
+        Route::get('/analytics', [DashboardController::class, 'analytics'])->name('analytics');
+        Route::get('/reports', [DashboardController::class, 'reports'])->name('reports');
 
         // Service Management Routes
         Route::prefix('services')->name('services.')->group(function () {

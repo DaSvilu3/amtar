@@ -179,25 +179,25 @@
             </div>
         </div>
 
-        {{-- System Dashboards --}}
+        {{-- Quick Links --}}
         <div class="dashboard-card">
-            <h5 class="mb-3"><i class="fas fa-tachometer-alt me-2"></i>Dashboards</h5>
+            <h5 class="mb-3"><i class="fas fa-tachometer-alt me-2"></i>Quick Links</h5>
             <div class="list-group list-group-flush">
-                <a href="{{ route('admin.dashboards.finance') }}" class="list-group-item list-group-item-action d-flex align-items-center">
-                    <i class="fas fa-dollar-sign me-3 text-success"></i>
-                    Finance Dashboard
+                <a href="{{ route('admin.analytics') }}" class="list-group-item list-group-item-action d-flex align-items-center">
+                    <i class="fas fa-chart-bar me-3 text-primary"></i>
+                    Analytics
                 </a>
-                <a href="{{ route('admin.dashboards.projects') }}" class="list-group-item list-group-item-action d-flex align-items-center">
-                    <i class="fas fa-project-diagram me-3 text-primary"></i>
-                    Projects Dashboard
+                <a href="{{ route('admin.reports') }}" class="list-group-item list-group-item-action d-flex align-items-center">
+                    <i class="fas fa-file-alt me-3 text-success"></i>
+                    Reports
                 </a>
-                <a href="{{ route('admin.dashboards.hr') }}" class="list-group-item list-group-item-action d-flex align-items-center">
-                    <i class="fas fa-users me-3 text-info"></i>
-                    HR Dashboard
+                <a href="{{ route('admin.approvals') }}" class="list-group-item list-group-item-action d-flex align-items-center">
+                    <i class="fas fa-check-circle me-3 text-warning"></i>
+                    Approvals
                 </a>
-                <a href="{{ route('admin.dashboards.performance') }}" class="list-group-item list-group-item-action d-flex align-items-center">
-                    <i class="fas fa-chart-line me-3 text-warning"></i>
-                    Performance Dashboard
+                <a href="{{ route('admin.projects.index') }}" class="list-group-item list-group-item-action d-flex align-items-center">
+                    <i class="fas fa-project-diagram me-3 text-info"></i>
+                    All Projects
                 </a>
             </div>
         </div>
