@@ -24,7 +24,16 @@ class Client extends Model
         'website',
         'notes',
         'status',
+        'relationship_manager_id',
     ];
+
+    /**
+     * Get the relationship manager (account manager) for the client.
+     */
+    public function relationshipManager()
+    {
+        return $this->belongsTo(User::class, 'relationship_manager_id');
+    }
 
     /**
      * Get the projects for the client.
@@ -40,5 +49,27 @@ class Client extends Model
     public function contracts()
     {
         return $this->hasMany(Contract::class);
+    }
+
+    /**
+     * Get the files/documents for the client.
+     */
+    public function files()
+    {
+        return $this->hasMany(File::class, 'entity_id')
+            ->where('entity_type', 'client');
+    }
+
+    /**
+     * Get a specific document by type slug.
+     */
+    public function getDocumentByType(string $slug)
+    {
+        return $this->files()
+            ->whereHas('documentType', function ($query) use ($slug) {
+                $query->where('slug', $slug);
+            })
+            ->latest()
+            ->first();
     }
 }

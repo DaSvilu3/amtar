@@ -58,9 +58,18 @@ class ProductionSeeder extends Seeder
         $this->command->info('Seeding document types...');
         $this->call(DocumentTypeSeeder::class);
 
+        // 6. Task Templates - Templates for auto-generating project tasks (also creates skills)
+        $this->command->info('Seeding task templates...');
+        $this->call(TaskTemplateSeeder::class);
+
+        // 7. Employees - AMTAR team members with roles and skills
+        $this->command->info('Seeding employees...');
+        $this->call(EmployeeSeeder::class);
+
         $this->command->newLine();
         $this->command->info('Production seeding completed successfully!');
         $this->command->newLine();
-        $this->command->warn('IMPORTANT: Create an admin user using: php artisan admin:create');
+        $this->command->info('Default employee password: Amtar2024!');
+        $this->command->warn('Please change passwords after first login.');
     }
 }

@@ -81,15 +81,37 @@
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="status" class="form-label">Status</label>
-                        <select class="form-select @error('status') is-invalid @enderror" id="status" name="status">
-                            <option value="active" {{ old('status') == 'active' ? 'selected' : '' }}>Active</option>
-                            <option value="inactive" {{ old('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
-                        </select>
-                        @error('status')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="status" class="form-label">Status</label>
+                            <select class="form-select @error('status') is-invalid @enderror" id="status" name="status">
+                                <option value="active" {{ old('status') == 'active' ? 'selected' : '' }}>Active</option>
+                                <option value="inactive" {{ old('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
+                                <option value="prospect" {{ old('status') == 'prospect' ? 'selected' : '' }}>Prospect</option>
+                                <option value="archived" {{ old('status') == 'archived' ? 'selected' : '' }}>Archived</option>
+                            </select>
+                            @error('status')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="relationship_manager_id" class="form-label">
+                                <i class="fas fa-user-tie me-1"></i>Relationship Manager
+                            </label>
+                            <select class="form-select @error('relationship_manager_id') is-invalid @enderror" id="relationship_manager_id" name="relationship_manager_id">
+                                <option value="">-- Select Employee --</option>
+                                @foreach($employees ?? [] as $employee)
+                                    <option value="{{ $employee->id }}" {{ old('relationship_manager_id') == $employee->id ? 'selected' : '' }}>
+                                        {{ $employee->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <small class="text-muted">The employee responsible for this client relationship</small>
+                            @error('relationship_manager_id')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
                     </div>
 
                     <hr class="my-4">

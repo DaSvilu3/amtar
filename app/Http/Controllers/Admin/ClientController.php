@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Client;
 use App\Models\File;
 use App\Models\DocumentType;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -14,13 +15,14 @@ class ClientController extends Controller
 {
     public function index()
     {
-        $clients = Client::orderBy('name')->paginate(20);
+        $clients = Client::with('relationshipManager')->orderBy('name')->paginate(20);
         return view('admin.clients.index', compact('clients'));
     }
 
     public function create()
     {
-        return view('admin.clients.create');
+        $employees = User::where('is_active', true)->orderBy('name')->get();
+        return view('admin.clients.create', compact('employees'));
     }
 
     public function store(Request $request)
@@ -38,6 +40,7 @@ class ClientController extends Controller
             'website' => 'nullable|url|max:255',
             'notes' => 'nullable|string',
             'status' => 'required|string|in:active,inactive,prospect,archived',
+            'relationship_manager_id' => 'nullable|exists:users,id',
             'documents' => 'nullable|array',
             'documents.*' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
         ]);
@@ -54,13 +57,20 @@ class ClientController extends Controller
 
     public function show(Client $client)
     {
-        $client->load('projects', 'contracts');
+        $client->load(['projects', 'contracts', 'files.documentType', 'relationshipManager']);
         return view('admin.clients.show', compact('client'));
     }
 
     public function edit(Client $client)
     {
-        return view('admin.clients.edit', compact('client'));
+        $client->load('files.documentType');
+        $documentTypes = DocumentType::where('entity_type', 'client')
+            ->where('is_active', true)
+            ->orderBy('is_required', 'desc')
+            ->orderBy('name')
+            ->get();
+        $employees = User::where('is_active', true)->orderBy('name')->get();
+        return view('admin.clients.edit', compact('client', 'documentTypes', 'employees'));
     }
 
     public function update(Request $request, Client $client)
@@ -78,6 +88,7 @@ class ClientController extends Controller
             'website' => 'nullable|url|max:255',
             'notes' => 'nullable|string',
             'status' => 'required|string|in:active,inactive,prospect,archived',
+            'relationship_manager_id' => 'nullable|exists:users,id',
             'documents' => 'nullable|array',
             'documents.*' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
         ]);

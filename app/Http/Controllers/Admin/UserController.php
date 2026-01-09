@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Role;
+use App\Models\Skill;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
@@ -19,7 +20,8 @@ class UserController extends Controller
     public function create()
     {
         $roles = Role::where('is_active', true)->get();
-        return view('admin.users.create', compact('roles'));
+        $skills = Skill::orderBy('name')->get();
+        return view('admin.users.create', compact('roles', 'skills'));
     }
 
     public function store(Request $request)
@@ -31,6 +33,9 @@ class UserController extends Controller
             'password' => 'required|string|min:8|confirmed',
             'is_active' => 'boolean',
             'roles' => 'array',
+            'skills' => 'array',
+            'skills.*.id' => 'exists:skills,id',
+            'skills.*.proficiency_level' => 'in:beginner,intermediate,advanced,expert',
         ]);
 
         $validated['password'] = Hash::make($validated['password']);
@@ -38,6 +43,19 @@ class UserController extends Controller
 
         if ($request->has('roles')) {
             $user->roles()->sync($request->roles);
+        }
+
+        // Sync skills with proficiency levels
+        if ($request->has('skills')) {
+            $skillData = [];
+            foreach ($request->skills as $skill) {
+                if (!empty($skill['id'])) {
+                    $skillData[$skill['id']] = [
+                        'proficiency_level' => $skill['proficiency_level'] ?? 'intermediate',
+                    ];
+                }
+            }
+            $user->skills()->sync($skillData);
         }
 
         return redirect()->route('admin.users.index')->with('success', 'User created successfully.');
@@ -52,7 +70,9 @@ class UserController extends Controller
     public function edit(User $user)
     {
         $roles = Role::where('is_active', true)->get();
-        return view('admin.users.edit', compact('user', 'roles'));
+        $skills = Skill::orderBy('name')->get();
+        $user->load('skills');
+        return view('admin.users.edit', compact('user', 'roles', 'skills'));
     }
 
     public function update(Request $request, User $user)
@@ -64,6 +84,9 @@ class UserController extends Controller
             'password' => 'nullable|string|min:8|confirmed',
             'is_active' => 'boolean',
             'roles' => 'array',
+            'skills' => 'array',
+            'skills.*.id' => 'exists:skills,id',
+            'skills.*.proficiency_level' => 'in:beginner,intermediate,advanced,expert',
         ]);
 
         if (!empty($validated['password'])) {
@@ -76,6 +99,22 @@ class UserController extends Controller
 
         if ($request->has('roles')) {
             $user->roles()->sync($request->roles);
+        }
+
+        // Sync skills with proficiency levels
+        if ($request->has('skills')) {
+            $skillData = [];
+            foreach ($request->skills as $skill) {
+                if (!empty($skill['id'])) {
+                    $skillData[$skill['id']] = [
+                        'proficiency_level' => $skill['proficiency_level'] ?? 'intermediate',
+                    ];
+                }
+            }
+            $user->skills()->sync($skillData);
+        } else {
+            // If no skills submitted, remove all skills
+            $user->skills()->detach();
         }
 
         return redirect()->route('admin.users.index')->with('success', 'User updated successfully.');

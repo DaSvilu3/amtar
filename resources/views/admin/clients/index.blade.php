@@ -58,6 +58,7 @@
                         <th>Email</th>
                         <th>Phone</th>
                         <th>Company</th>
+                        <th>Relationship Manager</th>
                         <th>Status</th>
                         <th>Projects</th>
                         <th>Actions</th>
@@ -70,13 +71,29 @@
                             <td><strong>{{ $client->name }}</strong></td>
                             <td>{{ $client->email }}</td>
                             <td>{{ $client->phone }}</td>
-                            <td>{{ $client->company ?? '-' }}</td>
+                            <td>{{ $client->company_name ?? '-' }}</td>
                             <td>
-                                @if($client->status == 'active')
-                                    <span class="badge bg-success">Active</span>
+                                @if($client->relationshipManager)
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-circle me-2" style="width: 28px; height: 28px; background: var(--primary-color); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px;">
+                                            {{ strtoupper(substr($client->relationshipManager->name, 0, 1)) }}
+                                        </div>
+                                        <span class="small">{{ $client->relationshipManager->name }}</span>
+                                    </div>
                                 @else
-                                    <span class="badge bg-secondary">Inactive</span>
+                                    <span class="text-muted">-</span>
                                 @endif
+                            </td>
+                            <td>
+                                @php
+                                    $statusColors = [
+                                        'active' => 'success',
+                                        'inactive' => 'secondary',
+                                        'prospect' => 'info',
+                                        'archived' => 'dark',
+                                    ];
+                                @endphp
+                                <span class="badge bg-{{ $statusColors[$client->status] ?? 'secondary' }}">{{ ucfirst($client->status) }}</span>
                             </td>
                             <td>
                                 <span class="badge bg-primary">{{ $client->projects_count ?? 0 }}</span>
@@ -101,7 +118,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="text-center py-4">
+                            <td colspan="9" class="text-center py-4">
                                 <i class="fas fa-users fa-3x text-muted mb-3"></i>
                                 <p class="text-muted">No clients found</p>
                             </td>

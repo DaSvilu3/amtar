@@ -23,9 +23,11 @@
             </div>
         </div>
         <div class="header-actions">
+            @can('update', $project)
             <a href="{{ route('admin.projects.edit', $project->id) }}" class="btn btn-warning btn-sm">
                 <i class="fas fa-edit me-1"></i>Edit
             </a>
+            @endcan
             <a href="{{ route('admin.projects.index') }}" class="btn btn-secondary btn-sm">
                 <i class="fas fa-arrow-left me-1"></i>Back
             </a>
@@ -102,6 +104,12 @@
                 <button class="nav-link" data-bs-toggle="tab" data-bs-target="#services" type="button">
                     <i class="fas fa-cogs me-2"></i>Services
                     <span class="tab-badge">{{ $project->services->count() }}</span>
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#notes-calendar" type="button">
+                    <i class="fas fa-sticky-note me-2"></i>Notes & Calendar
+                    <span class="tab-badge">{{ $project->notes->count() }}</span>
                 </button>
             </li>
         </ul>
@@ -446,6 +454,59 @@
                         <p>No files uploaded</p>
                     </div>
                 @endif
+
+                <!-- Task Documents Section -->
+                @php
+                    $taskFiles = \App\Models\File::where('entity_type', 'Task')
+                        ->whereIn('entity_id', $project->tasks->pluck('id'))
+                        ->with(['uploadedBy'])
+                        ->latest()
+                        ->get();
+                @endphp
+                @if($taskFiles->count() > 0)
+                    <div class="section-header mb-3 mt-4">
+                        <h5 class="mb-0"><i class="fas fa-tasks me-2"></i>Task Documents <span class="badge bg-secondary">{{ $taskFiles->count() }}</span></h5>
+                    </div>
+                    <div class="document-list">
+                        @foreach($taskFiles as $file)
+                            @php
+                                $extension = pathinfo($file->original_name, PATHINFO_EXTENSION);
+                                $iconClass = match(strtolower($extension)) {
+                                    'pdf' => 'fa-file-pdf text-danger',
+                                    'jpg', 'jpeg', 'png', 'gif' => 'fa-file-image text-primary',
+                                    'doc', 'docx' => 'fa-file-word text-info',
+                                    'xls', 'xlsx' => 'fa-file-excel text-success',
+                                    'zip', 'rar' => 'fa-file-archive text-warning',
+                                    'dwg', 'dxf' => 'fa-drafting-compass text-secondary',
+                                    default => 'fa-file text-secondary'
+                                };
+                                $task = $project->tasks->find($file->entity_id);
+                            @endphp
+                            <div class="document-item">
+                                <div class="document-icon">
+                                    <i class="fas {{ $iconClass }}"></i>
+                                </div>
+                                <div class="document-info">
+                                    <div class="document-name">{{ $file->original_name }}</div>
+                                    <div class="document-meta">
+                                        <span>{{ number_format($file->file_size / 1024, 1) }} KB</span>
+                                        <span>{{ $file->uploadedBy->name ?? 'Unknown' }}</span>
+                                        <span>{{ $file->created_at->format('M d, Y') }}</span>
+                                    </div>
+                                    @if($task)
+                                        <div class="small text-muted mt-1">
+                                            <i class="fas fa-link me-1"></i>
+                                            <a href="{{ route('admin.tasks.show', $task) }}" class="text-decoration-none">{{ Str::limit($task->title, 40) }}</a>
+                                        </div>
+                                    @endif
+                                </div>
+                                <a href="{{ Storage::url($file->file_path) }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-download"></i>
+                                </a>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
             </div>
 
             <!-- Services Tab -->
@@ -494,6 +555,225 @@
                     </div>
                 @endforelse
             </div>
+
+            <!-- Notes & Calendar Tab -->
+            <div class="tab-pane fade" id="notes-calendar">
+                <div class="row g-4">
+                    <!-- Left Column - Notes -->
+                    <div class="col-lg-5">
+                        <div class="section-header mb-3">
+                            <h5 class="mb-0"><i class="fas fa-sticky-note me-2"></i>Notes & Comments</h5>
+                            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addNoteModal">
+                                <i class="fas fa-plus me-1"></i>Add Note
+                            </button>
+                        </div>
+
+                        <!-- Pinned Notes -->
+                        @php $pinnedNotes = $project->notes()->pinned()->with('user')->get(); @endphp
+                        @if($pinnedNotes->count() > 0)
+                            <div class="mb-3">
+                                <h6 class="text-muted mb-2"><i class="fas fa-thumbtack me-1"></i>Pinned</h6>
+                                @foreach($pinnedNotes as $note)
+                                    <div class="note-card pinned mb-2">
+                                        <div class="note-header">
+                                            <span class="note-user">{{ $note->user->name }}</span>
+                                            <span class="note-date">{{ $note->created_at->diffForHumans() }}</span>
+                                        </div>
+                                        <div class="note-content">{{ $note->content }}</div>
+                                        <div class="note-actions">
+                                            <button class="btn btn-sm btn-link" onclick="togglePin({{ $note->id }})">
+                                                <i class="fas fa-thumbtack"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-link text-danger" onclick="deleteNote({{ $note->id }})">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+
+                        <!-- All Notes -->
+                        <div class="notes-list" id="notesList">
+                            @php $regularNotes = $project->notes()->where('is_pinned', false)->with('user')->latest()->get(); @endphp
+                            @forelse($regularNotes as $note)
+                                <div class="note-card mb-2" data-note-id="{{ $note->id }}">
+                                    <div class="note-header">
+                                        <span class="note-user">{{ $note->user->name }}</span>
+                                        <div>
+                                            @if($note->type === 'reminder' && $note->reminder_date)
+                                                <span class="badge bg-warning me-1"><i class="fas fa-bell"></i> {{ $note->reminder_date->format('M d') }}</span>
+                                            @endif
+                                            @if($note->color)
+                                                <span class="note-color-dot bg-{{ $note->color }}"></span>
+                                            @endif
+                                            <span class="note-date">{{ $note->created_at->diffForHumans() }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="note-content">{{ $note->content }}</div>
+                                    @if(auth()->id() === $note->user_id || auth()->user()->hasAnyRole(['administrator', 'project-manager']))
+                                        <div class="note-actions">
+                                            <button class="btn btn-sm btn-link" onclick="togglePin({{ $note->id }})">
+                                                <i class="far fa-thumbtack"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-link text-danger" onclick="deleteNote({{ $note->id }})">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    @endif
+                                </div>
+                            @empty
+                                <div class="empty-state-sm">
+                                    <i class="fas fa-sticky-note"></i>
+                                    <p>No notes yet</p>
+                                </div>
+                            @endforelse
+                        </div>
+                    </div>
+
+                    <!-- Right Column - Calendar -->
+                    <div class="col-lg-7">
+                        <div class="section-header mb-3">
+                            <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Project Calendar</h5>
+                            <div class="calendar-legend">
+                                <span class="legend-item"><span class="legend-dot bg-primary"></span>Task</span>
+                                <span class="legend-item"><span class="legend-dot bg-warning"></span>Milestone</span>
+                                <span class="legend-item"><span class="legend-dot bg-info"></span>Note</span>
+                            </div>
+                        </div>
+                        <div class="content-card">
+                            <div id="projectCalendar"></div>
+                        </div>
+
+                        <!-- Upcoming Items -->
+                        <div class="content-card mt-3">
+                            <div class="card-header-simple">
+                                <i class="fas fa-clock me-2"></i>Upcoming Deadlines
+                            </div>
+                            <div class="card-body-simple p-0">
+                                @php
+                                    $upcomingTasks = $project->tasks()
+                                        ->whereNotNull('due_date')
+                                        ->where('due_date', '>=', now())
+                                        ->where('status', '!=', 'completed')
+                                        ->orderBy('due_date')
+                                        ->limit(5)
+                                        ->get();
+                                    $upcomingMilestones = $project->milestones()
+                                        ->whereNotNull('target_date')
+                                        ->where('target_date', '>=', now())
+                                        ->where('status', '!=', 'completed')
+                                        ->orderBy('target_date')
+                                        ->limit(3)
+                                        ->get();
+                                @endphp
+                                <div class="upcoming-list">
+                                    @foreach($upcomingMilestones as $milestone)
+                                        <div class="upcoming-item">
+                                            <div class="upcoming-icon bg-warning"><i class="fas fa-flag"></i></div>
+                                            <div class="upcoming-info">
+                                                <strong>{{ $milestone->title }}</strong>
+                                                <small>{{ $milestone->target_date->format('M d, Y') }}</small>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                    @foreach($upcomingTasks as $task)
+                                        <div class="upcoming-item">
+                                            <div class="upcoming-icon bg-primary"><i class="fas fa-tasks"></i></div>
+                                            <div class="upcoming-info">
+                                                <a href="{{ route('admin.tasks.show', $task) }}">{{ $task->title }}</a>
+                                                <small>Due: {{ $task->due_date->format('M d, Y') }}</small>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                    @if($upcomingTasks->isEmpty() && $upcomingMilestones->isEmpty())
+                                        <div class="text-center text-muted py-3">
+                                            <i class="fas fa-check-circle fa-2x mb-2 opacity-50"></i>
+                                            <p class="mb-0">No upcoming deadlines</p>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Note Modal -->
+<div class="modal fade" id="addNoteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-sticky-note me-2"></i>Add Note</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ route('admin.projects.notes.store', $project) }}" method="POST" id="addNoteForm">
+                @csrf
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Note Content <span class="text-danger">*</span></label>
+                        <textarea class="form-control" name="content" rows="4" required placeholder="Write your note here..."></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Type</label>
+                            <select class="form-select" name="type" id="noteType" onchange="toggleReminderDate()">
+                                <option value="note">Note</option>
+                                <option value="comment">Comment</option>
+                                <option value="reminder">Reminder</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3" id="reminderDateField" style="display: none;">
+                            <label class="form-label">Reminder Date</label>
+                            <input type="date" class="form-control" name="reminder_date" min="{{ date('Y-m-d') }}">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Color (for calendar)</label>
+                            <div class="color-picker">
+                                <label class="color-option">
+                                    <input type="radio" name="color" value="">
+                                    <span class="color-dot bg-secondary"></span>
+                                </label>
+                                <label class="color-option">
+                                    <input type="radio" name="color" value="red">
+                                    <span class="color-dot bg-danger"></span>
+                                </label>
+                                <label class="color-option">
+                                    <input type="radio" name="color" value="yellow">
+                                    <span class="color-dot bg-warning"></span>
+                                </label>
+                                <label class="color-option">
+                                    <input type="radio" name="color" value="green">
+                                    <span class="color-dot bg-success"></span>
+                                </label>
+                                <label class="color-option">
+                                    <input type="radio" name="color" value="blue">
+                                    <span class="color-dot bg-primary"></span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check mt-4">
+                                <input class="form-check-input" type="checkbox" name="is_pinned" value="1" id="isPinned">
+                                <label class="form-check-label" for="isPinned">
+                                    <i class="fas fa-thumbtack me-1"></i>Pin this note
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>Save Note
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -713,10 +993,298 @@
     .empty-state-sm i { font-size: 40px; margin-bottom: 10px; opacity: 0.3; }
     .empty-state-sm p { margin-bottom: 10px; }
 
+    /* Notes styles */
+    .note-card {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 12px 15px;
+        border-left: 3px solid var(--secondary-color);
+        position: relative;
+    }
+
+    .note-card.pinned {
+        border-left-color: var(--primary-color);
+        background: #fff9e6;
+    }
+
+    .note-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+
+    .note-user {
+        font-weight: 600;
+        color: var(--primary-color);
+        font-size: 13px;
+    }
+
+    .note-date {
+        font-size: 11px;
+        color: #6c757d;
+    }
+
+    .note-content {
+        color: #495057;
+        font-size: 14px;
+        white-space: pre-wrap;
+    }
+
+    .note-actions {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+
+    .note-card:hover .note-actions {
+        opacity: 1;
+    }
+
+    .note-color-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 5px;
+    }
+
+    /* Calendar styles */
+    .calendar-legend {
+        display: flex;
+        gap: 15px;
+        font-size: 12px;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .legend-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 3px;
+    }
+
+    #projectCalendar {
+        padding: 15px;
+    }
+
+    .fc .fc-toolbar-title {
+        font-size: 16px !important;
+        color: var(--primary-color);
+    }
+
+    .fc .fc-button-primary {
+        background: var(--primary-color) !important;
+        border-color: var(--primary-color) !important;
+    }
+
+    .fc-event {
+        cursor: pointer;
+        border: none !important;
+        font-size: 11px !important;
+    }
+
+    /* Color picker styles */
+    .color-picker {
+        display: flex;
+        gap: 10px;
+    }
+
+    .color-option {
+        cursor: pointer;
+    }
+
+    .color-option input {
+        display: none;
+    }
+
+    .color-option .color-dot {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: block;
+        border: 2px solid transparent;
+        transition: transform 0.2s, border-color 0.2s;
+    }
+
+    .color-option input:checked + .color-dot {
+        border-color: var(--primary-color);
+        transform: scale(1.2);
+    }
+
+    /* Upcoming list */
+    .upcoming-list {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .upcoming-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 18px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .upcoming-item:last-child {
+        border-bottom: none;
+    }
+
+    .upcoming-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 12px;
+    }
+
+    .upcoming-info {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .upcoming-info strong, .upcoming-info a {
+        font-size: 13px;
+        color: var(--primary-color);
+        text-decoration: none;
+    }
+
+    .upcoming-info small {
+        font-size: 11px;
+        color: #6c757d;
+    }
+
     @media (max-width: 768px) {
         .project-header { flex-direction: column; gap: 15px; }
         .stats-row { grid-template-columns: repeat(2, 1fr); }
         .custom-tabs { overflow-x: auto; white-space: nowrap; }
     }
 </style>
+@endpush
+
+@push('scripts')
+<!-- FullCalendar JS -->
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize Calendar when tab is shown
+        const notesTab = document.querySelector('[data-bs-target="#notes-calendar"]');
+        let calendarInitialized = false;
+
+        notesTab.addEventListener('shown.bs.tab', function() {
+            if (!calendarInitialized) {
+                initCalendar();
+                calendarInitialized = true;
+            }
+        });
+
+        // If notes-calendar tab is active on load, init calendar
+        if (notesTab.classList.contains('active')) {
+            initCalendar();
+            calendarInitialized = true;
+        }
+    });
+
+    function initCalendar() {
+        const calendarEl = document.getElementById('projectCalendar');
+        if (!calendarEl) return;
+
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,listWeek'
+            },
+            height: 'auto',
+            events: function(info, successCallback, failureCallback) {
+                fetch('{{ route("admin.projects.calendar-events", $project) }}?start=' + info.startStr + '&end=' + info.endStr)
+                    .then(response => response.json())
+                    .then(data => {
+                        successCallback(data.events);
+                    })
+                    .catch(error => {
+                        console.error('Error loading calendar events:', error);
+                        failureCallback(error);
+                    });
+            },
+            eventClick: function(info) {
+                if (info.event.url) {
+                    window.location.href = info.event.url;
+                    info.jsEvent.preventDefault();
+                } else if (info.event.extendedProps.noteId) {
+                    // Show note details
+                    alert('Note: ' + info.event.extendedProps.content);
+                }
+            },
+            eventDidMount: function(info) {
+                // Add tooltip
+                if (info.event.extendedProps.content) {
+                    info.el.setAttribute('title', info.event.extendedProps.content);
+                }
+            }
+        });
+
+        calendar.render();
+    }
+
+    // Toggle reminder date field
+    function toggleReminderDate() {
+        const noteType = document.getElementById('noteType').value;
+        const reminderField = document.getElementById('reminderDateField');
+        reminderField.style.display = noteType === 'reminder' ? 'block' : 'none';
+    }
+
+    // Toggle pin
+    function togglePin(noteId) {
+        fetch(`/admin/project-notes/${noteId}/toggle-pin`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    // Delete note
+    function deleteNote(noteId) {
+        if (!confirm('Are you sure you want to delete this note?')) return;
+
+        fetch(`/admin/project-notes/${noteId}`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const noteCard = document.querySelector(`[data-note-id="${noteId}"]`);
+                if (noteCard) {
+                    noteCard.remove();
+                } else {
+                    location.reload();
+                }
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+</script>
 @endpush

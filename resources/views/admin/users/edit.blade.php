@@ -117,6 +117,49 @@
                         @enderror
                     </div>
 
+                    <!-- Skills Section -->
+                    <div class="mb-4">
+                        <label class="form-label"><i class="fas fa-tools me-2"></i>Skills & Expertise</label>
+                        <p class="text-muted small mb-3">Select skills and proficiency levels for this user. Skills are used for automatic task assignment.</p>
+
+                        <div id="skills-container" class="row">
+                            @php
+                                $userSkills = $user->skills->keyBy('id');
+                            @endphp
+                            @forelse($skills ?? [] as $skill)
+                            <div class="col-md-6 mb-2">
+                                <div class="skill-row d-flex align-items-center gap-2 p-2 border rounded {{ $userSkills->has($skill->id) ? 'border-primary bg-light' : '' }}">
+                                    <div class="form-check flex-grow-1">
+                                        <input type="checkbox"
+                                               class="form-check-input skill-checkbox"
+                                               id="skill_{{ $skill->id }}"
+                                               name="skills[{{ $skill->id }}][id]"
+                                               value="{{ $skill->id }}"
+                                               {{ $userSkills->has($skill->id) ? 'checked' : '' }}
+                                               onchange="toggleProficiency({{ $skill->id }})">
+                                        <label class="form-check-label" for="skill_{{ $skill->id }}">
+                                            {{ $skill->name }}
+                                        </label>
+                                    </div>
+                                    <select class="form-select form-select-sm proficiency-select"
+                                            name="skills[{{ $skill->id }}][proficiency_level]"
+                                            id="proficiency_{{ $skill->id }}"
+                                            style="width: 120px; {{ $userSkills->has($skill->id) ? '' : 'display: none;' }}">
+                                        <option value="beginner" {{ ($userSkills->get($skill->id)?->pivot->proficiency_level ?? '') == 'beginner' ? 'selected' : '' }}>Beginner</option>
+                                        <option value="intermediate" {{ ($userSkills->get($skill->id)?->pivot->proficiency_level ?? 'intermediate') == 'intermediate' ? 'selected' : '' }}>Intermediate</option>
+                                        <option value="advanced" {{ ($userSkills->get($skill->id)?->pivot->proficiency_level ?? '') == 'advanced' ? 'selected' : '' }}>Advanced</option>
+                                        <option value="expert" {{ ($userSkills->get($skill->id)?->pivot->proficiency_level ?? '') == 'expert' ? 'selected' : '' }}>Expert</option>
+                                    </select>
+                                </div>
+                            </div>
+                            @empty
+                            <div class="col-12">
+                                <p class="text-muted mb-0">No skills available. Run the task template seeder to create skills.</p>
+                            </div>
+                            @endforelse
+                        </div>
+                    </div>
+
                     <div class="d-flex justify-content-end gap-2 mt-4">
                         <a href="{{ route('admin.users.index') }}" class="btn btn-secondary">
                             <i class="fas fa-times me-2"></i>Cancel
@@ -171,5 +214,32 @@
         font-weight: 500;
         color: var(--primary-color);
     }
+    .skill-row {
+        transition: all 0.2s ease;
+    }
+    .skill-row:hover {
+        background-color: #f8f9fa;
+    }
+    .skill-row.border-primary {
+        border-width: 2px !important;
+    }
 </style>
+@endpush
+
+@push('scripts')
+<script>
+function toggleProficiency(skillId) {
+    const checkbox = document.getElementById('skill_' + skillId);
+    const proficiency = document.getElementById('proficiency_' + skillId);
+    const row = checkbox.closest('.skill-row');
+
+    if (checkbox.checked) {
+        proficiency.style.display = 'block';
+        row.classList.add('border-primary', 'bg-light');
+    } else {
+        proficiency.style.display = 'none';
+        row.classList.remove('border-primary', 'bg-light');
+    }
+}
+</script>
 @endpush

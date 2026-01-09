@@ -136,6 +136,30 @@ class Project extends Model
     }
 
     /**
+     * Get the notes for the project.
+     */
+    public function notes()
+    {
+        return $this->hasMany(ProjectNote::class);
+    }
+
+    /**
+     * Get pinned notes for the project.
+     */
+    public function pinnedNotes()
+    {
+        return $this->notes()->pinned()->latest();
+    }
+
+    /**
+     * Get calendar events (notes with reminder dates).
+     */
+    public function calendarEvents()
+    {
+        return $this->notes()->calendarEvents()->orderBy('reminder_date');
+    }
+
+    /**
      * Calculate overall project progress based on tasks.
      */
     public function calculateTaskProgress(): int

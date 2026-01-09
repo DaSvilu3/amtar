@@ -14,9 +14,11 @@
                 </ol>
             </nav>
         </div>
+        @can('create', App\Models\Project::class)
         <a href="{{ route('admin.projects.create') }}" class="btn btn-primary">
             <i class="fas fa-plus me-2"></i>New Project
         </a>
+        @endcan
     </div>
 
     @if(session('success'))
@@ -211,17 +213,23 @@
                                     <a href="{{ route('admin.projects.show', $project->id) }}" class="btn btn-sm btn-outline-primary" title="View">
                                         <i class="fas fa-eye"></i>
                                     </a>
+                                    @can('update', $project)
                                     <a href="{{ route('admin.projects.edit', $project->id) }}" class="btn btn-sm btn-outline-warning" title="Edit">
                                         <i class="fas fa-edit"></i>
                                     </a>
+                                    @endcan
+                                    @can('delete', $project)
                                     <button type="button" class="btn btn-sm btn-outline-danger" onclick="confirmDelete({{ $project->id }})" title="Delete">
                                         <i class="fas fa-trash"></i>
                                     </button>
+                                    @endcan
                                 </div>
+                                @can('delete', $project)
                                 <form id="delete-form-{{ $project->id }}" action="{{ route('admin.projects.destroy', $project->id) }}" method="POST" style="display: none;">
                                     @csrf
                                     @method('DELETE')
                                 </form>
+                                @endcan
                             </td>
                         </tr>
                     @empty

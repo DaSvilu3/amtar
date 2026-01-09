@@ -9,7 +9,13 @@ use App\Models\Project;
 use App\Models\ProjectService;
 use App\Models\Milestone;
 use App\Models\User;
+use App\Models\File;
 use App\Services\TaskAssignmentService;
+use App\Notifications\TaskAssignedNotification;
+use Illuminate\Support\Facades\Storage;
+use App\Notifications\TaskReviewSubmittedNotification;
+use App\Notifications\TaskApprovedNotification;
+use App\Notifications\TaskRejectedNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -35,24 +41,52 @@ class TaskController extends Controller
             });
         }
 
-        // Filter by project
+        // Filter by project(s) - support multi-select
         if ($request->filled('project_id')) {
-            $query->where('project_id', $request->project_id);
+            $projectIds = is_array($request->project_id) ? $request->project_id : [$request->project_id];
+            $query->whereIn('project_id', $projectIds);
         }
 
-        // Filter by status
+        // Filter by status(es) - support multi-select
         if ($request->filled('status')) {
-            $query->where('status', $request->status);
+            $statuses = is_array($request->status) ? $request->status : [$request->status];
+            $query->whereIn('status', $statuses);
         }
 
-        // Filter by assigned user
+        // Filter by assigned user(s) - support multi-select
         if ($request->filled('assigned_to')) {
-            $query->where('assigned_to', $request->assigned_to);
+            $assignees = is_array($request->assigned_to) ? $request->assigned_to : [$request->assigned_to];
+            if (in_array('unassigned', $assignees)) {
+                $query->where(function ($q) use ($assignees) {
+                    $q->whereNull('assigned_to');
+                    $userIds = array_filter($assignees, fn($a) => $a !== 'unassigned');
+                    if (!empty($userIds)) {
+                        $q->orWhereIn('assigned_to', $userIds);
+                    }
+                });
+            } else {
+                $query->whereIn('assigned_to', $assignees);
+            }
         }
 
-        // Filter by priority
+        // Filter by priority(ies) - support multi-select
         if ($request->filled('priority')) {
-            $query->where('priority', $request->priority);
+            $priorities = is_array($request->priority) ? $request->priority : [$request->priority];
+            $query->whereIn('priority', $priorities);
+        }
+
+        // Filter by due date range
+        if ($request->filled('due_from')) {
+            $query->where('due_date', '>=', $request->due_from);
+        }
+        if ($request->filled('due_to')) {
+            $query->where('due_date', '<=', $request->due_to);
+        }
+
+        // Filter overdue only
+        if ($request->boolean('overdue_only')) {
+            $query->where('due_date', '<', now())
+                  ->whereNotIn('status', ['completed', 'cancelled']);
         }
 
         // Get items based on view type
@@ -74,7 +108,28 @@ class TaskController extends Controller
         $projects = Project::orderBy('name')->get();
         $users = User::where('is_active', true)->orderBy('name')->get();
 
-        return view('admin.tasks.index', compact('items', 'tasks', 'projects', 'users', 'viewType'));
+        // Calculate statistics for charts
+        $statsQuery = Task::query();
+        if ($user->hasRole('engineer') && !$user->hasAnyRole(['administrator', 'project-manager'])) {
+            $statsQuery->where(function ($q) use ($user) {
+                $q->where('assigned_to', $user->id)->orWhere('reviewed_by', $user->id);
+            });
+        }
+        if ($request->filled('project_id')) {
+            $projectIds = is_array($request->project_id) ? $request->project_id : [$request->project_id];
+            $statsQuery->whereIn('project_id', $projectIds);
+        }
+
+        $taskStats = [
+            'by_status' => $statsQuery->clone()->selectRaw('status, COUNT(*) as count')->groupBy('status')->pluck('count', 'status')->toArray(),
+            'by_priority' => $statsQuery->clone()->selectRaw('priority, COUNT(*) as count')->groupBy('priority')->pluck('count', 'priority')->toArray(),
+            'overdue' => $statsQuery->clone()->where('due_date', '<', now())->whereNotIn('status', ['completed', 'cancelled'])->count(),
+            'unassigned' => $statsQuery->clone()->whereNull('assigned_to')->whereNotIn('status', ['completed', 'cancelled'])->count(),
+            'due_this_week' => $statsQuery->clone()->whereBetween('due_date', [now(), now()->endOfWeek()])->whereNotIn('status', ['completed', 'cancelled'])->count(),
+            'urgent_high' => $statsQuery->clone()->whereIn('priority', ['urgent', 'high'])->whereNotIn('status', ['completed', 'cancelled'])->count(),
+        ];
+
+        return view('admin.tasks.index', compact('items', 'tasks', 'projects', 'users', 'viewType', 'taskStats'));
     }
 
     public function create(Request $request)
@@ -117,6 +172,14 @@ class TaskController extends Controller
             $task->dependencies()->attach($request->dependencies);
         }
 
+        // Send notification to assigned user
+        if ($task->assigned_to && $task->assigned_to !== Auth::id()) {
+            $assignedUser = User::find($task->assigned_to);
+            if ($assignedUser) {
+                $assignedUser->notify(new TaskAssignedNotification($task->load('project'), Auth::user()->name));
+            }
+        }
+
         return redirect()->route('admin.tasks.index', ['project_id' => $task->project_id])
             ->with('success', 'Task created successfully.');
     }
@@ -139,7 +202,8 @@ class TaskController extends Controller
             'assignedTo',
             'createdBy',
             'dependencies',
-            'dependents'
+            'dependents',
+            'files.uploadedBy'
         ]);
 
         return view('admin.tasks.show', compact('task'));
@@ -186,7 +250,19 @@ class TaskController extends Controller
             $validated['progress'] = 100;
         }
 
+        // Check if assigned_to changed to notify new assignee
+        $oldAssignee = $task->assigned_to;
+        $newAssignee = $validated['assigned_to'] ?? null;
+
         $task->update($validated);
+
+        // Notify new assignee if changed
+        if ($newAssignee && $newAssignee !== $oldAssignee && $newAssignee !== Auth::id()) {
+            $assignedUser = User::find($newAssignee);
+            if ($assignedUser) {
+                $assignedUser->notify(new TaskAssignedNotification($task->load('project'), Auth::user()->name));
+            }
+        }
 
         // Sync dependencies
         $task->dependencies()->sync($request->input('dependencies', []));
@@ -397,6 +473,23 @@ class TaskController extends Controller
 
         $task->submitForReview($reviewerId);
 
+        // Notify the reviewer
+        if ($reviewerId) {
+            $reviewer = User::find($reviewerId);
+            if ($reviewer && $reviewer->id !== Auth::id()) {
+                $reviewer->notify(new TaskReviewSubmittedNotification($task->load('project'), Auth::user()->name));
+            }
+        }
+
+        // Also notify project manager if different from reviewer
+        $project = $task->project;
+        if ($project && $project->project_manager_id && $project->project_manager_id !== $reviewerId && $project->project_manager_id !== Auth::id()) {
+            $pm = User::find($project->project_manager_id);
+            if ($pm) {
+                $pm->notify(new TaskReviewSubmittedNotification($task->load('project'), Auth::user()->name));
+            }
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Task submitted for review.',
@@ -414,6 +507,14 @@ class TaskController extends Controller
         ]);
 
         $task->approveReview($validated['notes'] ?? null);
+
+        // Notify the assignee that their task was approved
+        if ($task->assigned_to && $task->assigned_to !== Auth::id()) {
+            $assignee = User::find($task->assigned_to);
+            if ($assignee) {
+                $assignee->notify(new TaskApprovedNotification($task->load('project'), Auth::user()->name, $validated['notes'] ?? null));
+            }
+        }
 
         return response()->json([
             'success' => true,
@@ -433,6 +534,14 @@ class TaskController extends Controller
 
         $task->rejectReview($validated['notes']);
 
+        // Notify the assignee that their task was rejected
+        if ($task->assigned_to && $task->assigned_to !== Auth::id()) {
+            $assignee = User::find($task->assigned_to);
+            if ($assignee) {
+                $assignee->notify(new TaskRejectedNotification($task->load('project'), Auth::user()->name, $validated['notes']));
+            }
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Task sent back for revision.',
@@ -451,5 +560,134 @@ class TaskController extends Controller
             ->paginate(20);
 
         return view('admin.tasks.pending-reviews', compact('tasks'));
+    }
+
+    /**
+     * Update task progress (for assigned user).
+     */
+    public function updateProgress(Request $request, Task $task)
+    {
+        $user = Auth::user();
+
+        // Allow if: assigned to task, is PM, or is admin
+        if ($task->assigned_to !== $user->id && !$user->hasAnyRole(['administrator', 'project-manager'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You are not authorized to update this task.',
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'progress' => 'required|integer|min:0|max:100',
+            'actual_hours' => 'nullable|numeric|min:0',
+        ]);
+
+        $task->update([
+            'progress' => $validated['progress'],
+            'actual_hours' => $validated['actual_hours'] ?? $task->actual_hours,
+        ]);
+
+        // If progress is 100%, auto-complete if no review required
+        if ($validated['progress'] == 100 && !$task->requires_review && $task->status !== 'completed') {
+            // Don't auto-complete, let user explicitly complete
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Progress updated successfully.',
+            'task' => $task,
+        ]);
+    }
+
+    /**
+     * Upload a file to a task.
+     */
+    public function uploadFile(Request $request, Task $task)
+    {
+        $user = Auth::user();
+
+        // Allow if: assigned to task, is PM, or is admin
+        if ($task->assigned_to !== $user->id && !$user->hasAnyRole(['administrator', 'project-manager'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You are not authorized to upload files to this task.',
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'file' => 'required|file|max:10240',
+            'name' => 'nullable|string|max:255',
+            'description' => 'nullable|string|max:1000',
+        ]);
+
+        $uploadedFile = $request->file('file');
+        $originalName = $uploadedFile->getClientOriginalName();
+        $mimeType = $uploadedFile->getMimeType();
+        $fileSize = $uploadedFile->getSize();
+
+        $filePath = $uploadedFile->store('tasks/' . $task->id, 'public');
+
+        $file = File::create([
+            'name' => $validated['name'] ?? pathinfo($originalName, PATHINFO_FILENAME),
+            'original_name' => $originalName,
+            'file_path' => $filePath,
+            'mime_type' => $mimeType,
+            'file_size' => $fileSize,
+            'category' => 'task_document',
+            'description' => $validated['description'] ?? null,
+            'uploaded_by' => Auth::id(),
+            'entity_type' => 'Task',
+            'entity_id' => $task->id,
+        ]);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'File uploaded successfully.',
+                'file' => $file,
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'File uploaded successfully.');
+    }
+
+    /**
+     * Delete a file from a task.
+     */
+    public function deleteFile(Request $request, Task $task, File $file)
+    {
+        $user = Auth::user();
+
+        // Verify file belongs to this task
+        if ($file->entity_type !== 'Task' || $file->entity_id !== $task->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'File does not belong to this task.',
+            ], 403);
+        }
+
+        // Allow if: file uploader, task assignee, is PM, or is admin
+        if ($file->uploaded_by !== $user->id && $task->assigned_to !== $user->id && !$user->hasAnyRole(['administrator', 'project-manager'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You are not authorized to delete this file.',
+            ], 403);
+        }
+
+        // Delete file from storage
+        if ($file->file_path && Storage::disk('public')->exists($file->file_path)) {
+            Storage::disk('public')->delete($file->file_path);
+        }
+
+        $file->delete();
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'File deleted successfully.',
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'File deleted successfully.');
     }
 }

@@ -709,15 +709,36 @@
             </div>
 
             <div class="header-actions">
-                <button class="btn-header" title="Notifications">
-                    <i class="fas fa-bell"></i>
-                    <span class="badge">5</span>
-                </button>
-
-                <button class="btn-header" title="Messages">
-                    <i class="fas fa-envelope"></i>
-                    <span class="badge">3</span>
-                </button>
+                <!-- Notifications Dropdown -->
+                <div class="dropdown">
+                    <button class="btn-header" title="Notifications" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" id="notificationDropdownBtn">
+                        <i class="fas fa-bell"></i>
+                        <span class="badge notification-badge" id="notificationBadge" style="display: none;">0</span>
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-end notification-dropdown" style="width: 380px; max-height: 480px; overflow: hidden;">
+                        <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom">
+                            <h6 class="mb-0 fw-bold">Notifications</h6>
+                            <div>
+                                <button class="btn btn-sm btn-link text-muted p-0 me-2" onclick="markAllNotificationsRead()" title="Mark all as read">
+                                    <i class="fas fa-check-double"></i>
+                                </button>
+                                <a href="{{ route('admin.notifications.index') }}" class="btn btn-sm btn-link text-primary p-0">View All</a>
+                            </div>
+                        </div>
+                        <div class="notification-list" id="notificationList" style="max-height: 350px; overflow-y: auto;">
+                            <div class="text-center py-4">
+                                <div class="spinner-border spinner-border-sm" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="border-top px-3 py-2 text-center">
+                            <a href="{{ route('admin.notifications.index') }}" class="text-decoration-none small">
+                                <i class="fas fa-external-link-alt me-1"></i>View All Notifications
+                            </a>
+                        </div>
+                    </div>
+                </div>
 
                 <div class="header-divider"></div>
 
@@ -774,6 +795,8 @@
         </main>
     </div>
 
+    <!-- jQuery (required for Select2) -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
@@ -788,8 +811,157 @@
             if (localStorage.getItem('sidebarCollapsed') === 'true') {
                 document.getElementById('sidebar').classList.add('collapsed');
             }
+
+            // Scroll sidebar to active item
+            scrollToActiveNavItem();
+
+            // Load notifications on page load
+            loadNotifications();
+
+            // Refresh notifications every 30 seconds
+            setInterval(loadNotifications, 30000);
+
+            // Load notifications when dropdown is opened
+            const notificationBtn = document.getElementById('notificationDropdownBtn');
+            if (notificationBtn) {
+                notificationBtn.addEventListener('click', loadNotifications);
+            }
         });
+
+        function loadNotifications() {
+            fetch('{{ route("admin.notifications.unread") }}', {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                updateNotificationBadge(data.unread_count);
+                renderNotificationList(data.notifications);
+            })
+            .catch(error => {
+                console.error('Error loading notifications:', error);
+            });
+        }
+
+        function updateNotificationBadge(count) {
+            const badge = document.getElementById('notificationBadge');
+            if (badge) {
+                badge.textContent = count > 99 ? '99+' : count;
+                badge.style.display = count > 0 ? 'flex' : 'none';
+            }
+        }
+
+        function renderNotificationList(notifications) {
+            const list = document.getElementById('notificationList');
+            if (!list) return;
+
+            if (notifications.length === 0) {
+                list.innerHTML = `
+                    <div class="text-center py-4">
+                        <i class="fas fa-bell-slash fa-2x text-muted mb-2"></i>
+                        <p class="text-muted mb-0">No new notifications</p>
+                    </div>
+                `;
+                return;
+            }
+
+            list.innerHTML = notifications.map(n => `
+                <a href="${n.url}" class="notification-item d-flex align-items-start p-3 text-decoration-none border-bottom" data-id="${n.id}">
+                    <div class="notification-icon bg-${n.color} bg-opacity-10 text-${n.color} me-3">
+                        <i class="fas ${n.icon}"></i>
+                    </div>
+                    <div class="flex-grow-1 overflow-hidden">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <strong class="text-dark d-block text-truncate">${n.title}</strong>
+                            <small class="text-muted ms-2 flex-shrink-0">${n.created_at}</small>
+                        </div>
+                        <p class="text-muted small mb-0 text-truncate">${n.message}</p>
+                    </div>
+                </a>
+            `).join('');
+        }
+
+        function markAllNotificationsRead() {
+            fetch('{{ route("admin.notifications.mark-all-read") }}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateNotificationBadge(0);
+                    loadNotifications();
+                }
+            });
+        }
+
+        function scrollToActiveNavItem() {
+            const sidebarNav = document.querySelector('.sidebar-nav');
+            const activeItem = document.querySelector('.nav-link.active');
+
+            if (sidebarNav && activeItem) {
+                // Get the position of the active item relative to the sidebar nav
+                const activeRect = activeItem.getBoundingClientRect();
+                const navRect = sidebarNav.getBoundingClientRect();
+
+                // Calculate the scroll position to center the active item
+                const scrollTop = activeItem.offsetTop - (sidebarNav.clientHeight / 2) + (activeItem.clientHeight / 2);
+
+                // Smooth scroll to the active item
+                sidebarNav.scrollTo({
+                    top: Math.max(0, scrollTop),
+                    behavior: 'smooth'
+                });
+            }
+        }
     </script>
+
+    <style>
+        /* Notification Dropdown Styles */
+        .notification-dropdown {
+            padding: 0;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            border-radius: 12px;
+        }
+
+        .notification-item {
+            transition: background-color 0.15s ease;
+        }
+
+        .notification-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .notification-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .notification-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .notification-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .notification-list::-webkit-scrollbar-thumb {
+            background: #ddd;
+            border-radius: 3px;
+        }
+    </style>
 
     @stack('scripts')
 </body>

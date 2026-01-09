@@ -476,21 +476,6 @@
                 <p class="brand-description">
                     Delivering excellence in engineering design, project management, and construction supervision across the Gulf region since 2010.
                 </p>
-
-                <div class="brand-stats">
-                    <div class="stat-item">
-                        <div class="stat-value">150+</div>
-                        <div class="stat-label">Projects</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value">50+</div>
-                        <div class="stat-label">Clients</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value">15+</div>
-                        <div class="stat-label">Years</div>
-                    </div>
-                </div>
             </div>
 
             <div class="brand-footer">
@@ -580,7 +565,7 @@
 
                 <div class="form-footer">
                     <p class="form-footer-text">
-                        Need an account? <a href="#" class="form-footer-link">Contact Administrator</a>
+                        Need an account? <a href="mailto:info@amtar.om" class="form-footer-link">Contact Super Admin</a>
                     </p>
                 </div>
 

@@ -20,6 +20,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ServiceManagementController;
 use App\Http\Controllers\Admin\SkillController;
 use App\Http\Controllers\Admin\TaskTemplateController;
+use App\Http\Controllers\Admin\NotificationController;
 
 Route::get('/', function () {
     return redirect('/login');
@@ -37,6 +38,16 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
     // SHARED: All authenticated users can access
     // ============================================
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // Notifications
+    Route::prefix('notifications')->name('notifications.')->group(function () {
+        Route::get('/', [NotificationController::class, 'index'])->name('index');
+        Route::get('/unread', [NotificationController::class, 'unread'])->name('unread');
+        Route::post('/{id}/read', [NotificationController::class, 'markAsRead'])->name('mark-read');
+        Route::post('/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('mark-all-read');
+        Route::delete('/{id}', [NotificationController::class, 'destroy'])->name('destroy');
+        Route::delete('/clear/all', [NotificationController::class, 'clearAll'])->name('clear-all');
+    });
 
     // API Routes for dynamic service loading (needed by all roles for project views)
     Route::get('/api/services/sub-services/{mainServiceId}', [ProjectController::class, 'getSubServices'])->name('api.services.subservices');
@@ -100,14 +111,26 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
         Route::get('tasks', [TaskController::class, 'index'])->name('tasks.index');
         Route::get('tasks/{task}', [TaskController::class, 'show'])->name('tasks.show');
         Route::patch('tasks/{task}/status', [TaskController::class, 'updateStatus'])->name('tasks.update-status');
+        Route::patch('tasks/{task}/progress', [TaskController::class, 'updateProgress'])->name('tasks.update-progress');
         Route::post('tasks/reorder', [TaskController::class, 'reorder'])->name('tasks.reorder');
         Route::post('tasks/{task}/submit-review', [TaskController::class, 'submitForReview'])->name('tasks.submit-review');
         Route::get('api/projects/{project}/tasks', [TaskController::class, 'getProjectTasks'])->name('api.projects.tasks');
+
+        // Task file uploads (engineers can upload to their assigned tasks)
+        Route::post('tasks/{task}/files', [TaskController::class, 'uploadFile'])->name('tasks.upload-file');
+        Route::delete('tasks/{task}/files/{file}', [TaskController::class, 'deleteFile'])->name('tasks.delete-file');
 
         // Projects - view only
         Route::get('projects', [ProjectController::class, 'index'])->name('projects.index');
         Route::get('projects/{project}', [ProjectController::class, 'show'])->name('projects.show')
             ->where('project', '[0-9]+');  // Only match numeric IDs, not 'create'
+
+        // Project Notes (comments, reminders, calendar events)
+        Route::post('projects/{project}/notes', [\App\Http\Controllers\Admin\ProjectNoteController::class, 'store'])->name('projects.notes.store');
+        Route::put('project-notes/{note}', [\App\Http\Controllers\Admin\ProjectNoteController::class, 'update'])->name('projects.notes.update');
+        Route::post('project-notes/{note}/toggle-pin', [\App\Http\Controllers\Admin\ProjectNoteController::class, 'togglePin'])->name('projects.notes.toggle-pin');
+        Route::delete('project-notes/{note}', [\App\Http\Controllers\Admin\ProjectNoteController::class, 'destroy'])->name('projects.notes.destroy');
+        Route::get('projects/{project}/calendar-events', [\App\Http\Controllers\Admin\ProjectNoteController::class, 'calendarEvents'])->name('projects.calendar-events');
 
         // Files - view and upload
         Route::get('files', [FileController::class, 'index'])->name('files.index');
@@ -129,6 +152,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
 
         // Approvals
         Route::get('/approvals', [DashboardController::class, 'approvals'])->name('approvals');
+
+        // Team Workload API (for tasks page)
+        Route::get('/api/team-workload', [DashboardController::class, 'getTeamWorkload'])->name('api.team-workload');
     });
 
     // ============================================
@@ -138,6 +164,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
         // User & Role Management
         Route::resource('users', UserController::class);
         Route::resource('roles', RoleController::class);
+        Route::get('roles-matrix', [RoleController::class, 'matrix'])->name('roles.matrix');
+        Route::post('roles/update-permission', [RoleController::class, 'updatePermission'])->name('roles.update-permission');
 
         // System Settings
         Route::resource('settings', SettingController::class);
@@ -152,9 +180,6 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
         // Skills & Task Templates
         Route::resource('skills', SkillController::class)->except(['show']);
         Route::resource('task-templates', TaskTemplateController::class);
-
-        // Team Workload API
-        Route::get('/api/team-workload', [DashboardController::class, 'getTeamWorkload'])->name('api.team-workload');
 
         // Reports & Analytics
         Route::get('/analytics', [DashboardController::class, 'analytics'])->name('analytics');

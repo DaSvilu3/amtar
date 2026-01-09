@@ -15,9 +15,14 @@
                 </ol>
             </nav>
         </div>
-        <a href="{{ route('admin.roles.create') }}" class="btn btn-primary">
-            <i class="fas fa-plus me-2"></i>Add New Role
-        </a>
+        <div class="d-flex gap-2">
+            <a href="{{ route('admin.roles.matrix') }}" class="btn btn-outline-primary">
+                <i class="fas fa-table me-2"></i>Permissions Matrix
+            </a>
+            <a href="{{ route('admin.roles.create') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Add New Role
+            </a>
+        </div>
     </div>
 
     @if(session('success'))

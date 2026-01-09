@@ -98,6 +98,15 @@ class Task extends Model
     }
 
     /**
+     * Get the files associated with this task.
+     */
+    public function files()
+    {
+        return $this->hasMany(File::class, 'entity_id')
+            ->where('entity_type', 'Task');
+    }
+
+    /**
      * Get the tasks that this task depends on.
      */
     public function dependencies()

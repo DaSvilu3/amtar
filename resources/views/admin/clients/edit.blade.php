@@ -82,15 +82,37 @@
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="status" class="form-label">Status</label>
-                        <select class="form-select @error('status') is-invalid @enderror" id="status" name="status">
-                            <option value="active" {{ old('status', $client->status) == 'active' ? 'selected' : '' }}>Active</option>
-                            <option value="inactive" {{ old('status', $client->status) == 'inactive' ? 'selected' : '' }}>Inactive</option>
-                        </select>
-                        @error('status')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="status" class="form-label">Status</label>
+                            <select class="form-select @error('status') is-invalid @enderror" id="status" name="status">
+                                <option value="active" {{ old('status', $client->status) == 'active' ? 'selected' : '' }}>Active</option>
+                                <option value="inactive" {{ old('status', $client->status) == 'inactive' ? 'selected' : '' }}>Inactive</option>
+                                <option value="prospect" {{ old('status', $client->status) == 'prospect' ? 'selected' : '' }}>Prospect</option>
+                                <option value="archived" {{ old('status', $client->status) == 'archived' ? 'selected' : '' }}>Archived</option>
+                            </select>
+                            @error('status')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="relationship_manager_id" class="form-label">
+                                <i class="fas fa-user-tie me-1"></i>Relationship Manager
+                            </label>
+                            <select class="form-select @error('relationship_manager_id') is-invalid @enderror" id="relationship_manager_id" name="relationship_manager_id">
+                                <option value="">-- Select Employee --</option>
+                                @foreach($employees ?? [] as $employee)
+                                    <option value="{{ $employee->id }}" {{ old('relationship_manager_id', $client->relationship_manager_id) == $employee->id ? 'selected' : '' }}>
+                                        {{ $employee->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <small class="text-muted">The employee responsible for this client relationship</small>
+                            @error('relationship_manager_id')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
                     </div>
 
                     <hr class="my-4">
@@ -98,49 +120,45 @@
                     <h5 class="mb-3"><i class="fas fa-file-upload me-2"></i>Documents</h5>
                     <p class="text-muted small mb-3">Upload new documents or replace existing ones</p>
 
+                    @foreach($documentTypes ?? [] as $docType)
+                    @php
+                        $existingFile = $client->files->firstWhere('document_type_id', $docType->id);
+                    @endphp
                     <div class="mb-3">
-                        <label for="document_civil_id" class="form-label">Client ID / Civil ID</label>
-                        <input type="file" class="form-control @error('documents.client_civil_id') is-invalid @enderror"
-                               id="document_civil_id" name="documents[client_civil_id]"
-                               accept=".pdf,.jpg,.jpeg,.png">
-                        <small class="text-muted">Accepted formats: PDF, JPG, PNG</small>
-                        @error('documents.client_civil_id')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
+                        <label for="document_{{ $docType->slug }}" class="form-label">
+                            {{ $docType->name }}
+                            @if($docType->is_required)
+                                <span class="text-danger">*</span>
+                            @endif
+                        </label>
 
-                    <div class="mb-3">
-                        <label for="document_commercial_registration" class="form-label">Commercial Registration</label>
-                        <input type="file" class="form-control @error('documents.client_commercial_registration') is-invalid @enderror"
-                               id="document_commercial_registration" name="documents[client_commercial_registration]"
-                               accept=".pdf,.jpg,.jpeg,.png">
-                        <small class="text-muted">Accepted formats: PDF, JPG, PNG</small>
-                        @error('documents.client_commercial_registration')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
+                        @if($existingFile)
+                        <div class="alert alert-info py-2 px-3 mb-2 d-flex align-items-center justify-content-between">
+                            <div>
+                                <i class="fas fa-file me-2"></i>
+                                <strong>Current:</strong> {{ $existingFile->original_name }}
+                                <span class="text-muted small ms-2">({{ number_format($existingFile->file_size / 1024, 1) }} KB)</span>
+                            </div>
+                            <a href="{{ Storage::url($existingFile->file_path) }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-eye"></i> View
+                            </a>
+                        </div>
+                        @endif
 
-                    <div class="mb-3">
-                        <label for="document_tax_certificate" class="form-label">Tax Registration Certificate</label>
-                        <input type="file" class="form-control @error('documents.client_tax_certificate') is-invalid @enderror"
-                               id="document_tax_certificate" name="documents[client_tax_certificate]"
+                        <input type="file" class="form-control @error('documents.' . $docType->slug) is-invalid @enderror"
+                               id="document_{{ $docType->slug }}" name="documents[{{ $docType->slug }}]"
                                accept=".pdf,.jpg,.jpeg,.png">
-                        <small class="text-muted">Accepted formats: PDF, JPG, PNG</small>
-                        @error('documents.client_tax_certificate')
+                        <small class="text-muted">
+                            Accepted formats: PDF, JPG, PNG
+                            @if($existingFile)
+                                - Upload a new file to replace the existing one
+                            @endif
+                        </small>
+                        @error('documents.' . $docType->slug)
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
-
-                    <div class="mb-3">
-                        <label for="document_authorization_letter" class="form-label">Authorization Letter</label>
-                        <input type="file" class="form-control @error('documents.client_authorization_letter') is-invalid @enderror"
-                               id="document_authorization_letter" name="documents[client_authorization_letter]"
-                               accept=".pdf,.jpg,.jpeg,.png">
-                        <small class="text-muted">Accepted formats: PDF, JPG, PNG</small>
-                        @error('documents.client_authorization_letter')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
+                    @endforeach
 
                     <div class="d-flex justify-content-end gap-2 mt-4">
                         <a href="{{ route('admin.clients.index') }}" class="btn btn-secondary">

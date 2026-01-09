@@ -75,12 +75,12 @@ After logging in, verify each item works:
 
 | # | Test | How to Verify | Pass? |
 |---|------|---------------|-------|
-| 1 | Dashboard loads | See stats and quick links | [ ] |
-| 2 | Navigation works | Click each sidebar item | [ ] |
-| 3 | Create user | System > Users > Add User | [ ] |
-| 4 | Create client | Clients > Add Client | [ ] |
-| 5 | Create project | Projects > New Project (wizard) | [ ] |
-| 6 | Tasks generated | View project > Tasks tab | [ ] |
+| 1 | Dashboard loads | See stats and quick links | [Y] |
+| 2 | Navigation works | Click each sidebar item | [Y] |
+| 3 | Create user | System > Users > Add User | [Y] |
+| 4 | Create client | Clients > Add Client | [Y] |
+| 5 | Create project | Projects > New Project (wizard) | [Y] |
+| 6 | Tasks generated | View project > Tasks tab | [Y] |
 | 7 | Assign task | Task > Auto Assign | [ ] |
 | 8 | Update task | Change status to In Progress | [ ] |
 | 9 | View analytics | Analytics > Analytics | [ ] |
@@ -88,22 +88,35 @@ After logging in, verify each item works:
 
 ---
 
-## Create Test Users
+## Pre-seeded Employees
 
-Create these users to test role-based access:
+The following employees are created automatically by the seeder:
 
-| Role | Email | Password |
-|------|-------|----------|
-| Administrator | admin@amtar.om | Admin123! |
-| Project Manager | pm@amtar.om | PM123! |
-| Engineer | engineer@amtar.om | Engineer123! |
+### Leadership (2)
 
-Steps:
-1. Go to System > Users
-2. Click "Add User"
-3. Fill in name, email, password
-4. Select role
-5. Click "Create User"
+| Name | Email | Role | Specialization |
+|------|-------|------|----------------|
+| Ayman Alhandhali | ayman@amtar.om | Administrator | CEO |
+| Nimah Al Rashdi | nimah@amtar.om | Project Manager | Founder & Head of Architecture |
+
+### Technical Team (3)
+
+| Name | Email | Role | Specialization |
+|------|-------|------|----------------|
+| Technical Staff 1 | technical1@amtar.om | Engineer | Technical / CAD & 3D |
+| Follow-up Staff | followup@amtar.om | Engineer | Follow-up & Coordination |
+| Site Staff | site@amtar.om | Engineer | Site Supervision |
+
+### Freelancers (2)
+
+| Name | Email | Role | Specialization |
+|------|-------|------|----------------|
+| Freelance MEP Engineer | mep.freelance@amtar.om | Engineer | MEP Engineering |
+| Freelance Landscape Designer | landscape.freelance@amtar.om | Engineer | Landscape Design |
+
+**Default Password:** `Amtar2024!`
+
+Each employee has skills assigned based on their specialization for auto-task assignment.
 
 ---
 

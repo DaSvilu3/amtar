@@ -14,6 +14,7 @@ use App\Models\SubService;
 use App\Models\ServicePackage;
 use App\Models\Service;
 use App\Models\Contract;
+use App\Models\Milestone;
 use App\Models\TaskTemplate;
 use App\Models\Skill;
 use App\Services\TaskAssignmentService;
@@ -115,10 +116,21 @@ class ProjectController extends Controller
                 $message = 'Project created successfully.';
             }
 
-            // Generate tasks if requested
+            // Generate milestones FIRST if requested (tasks will be linked to them)
+            $milestonesGenerated = 0;
+            $milestonesByStage = collect();
+            if ($request->boolean('generate_milestones', false)) {
+                $milestonesByStage = $this->generateProjectMilestones($project);
+                $milestonesGenerated = $milestonesByStage->count();
+                if ($milestonesGenerated > 0) {
+                    $message .= " {$milestonesGenerated} milestones created.";
+                }
+            }
+
+            // Generate tasks if requested (link to milestones if they exist)
             $tasksGenerated = 0;
             if ($request->boolean('auto_generate_tasks', false)) {
-                $tasksGenerated = $this->generateProjectTasks($project, $request);
+                $tasksGenerated = $this->generateProjectTasks($project, $request, $milestonesByStage);
                 if ($tasksGenerated > 0) {
                     $message .= " {$tasksGenerated} tasks generated.";
                 }
@@ -561,19 +573,26 @@ class ProjectController extends Controller
 
     /**
      * Generate tasks from templates for project services
+     * Links tasks to milestones based on service stage
      */
-    private function generateProjectTasks(Project $project, Request $request): int
+    private function generateProjectTasks(Project $project, Request $request, $milestonesByStage = null): int
     {
         $autoAssign = $request->boolean('auto_assign_tasks', true);
         $selectedTemplates = $request->input('selected_templates', []);
         $tasksCreated = 0;
 
-        // Get project services
+        // Get project services with their service stage
         $projectServices = ProjectService::where('project_id', $project->id)
-            ->with('service')
+            ->with(['service.serviceStage'])
             ->get();
 
         foreach ($projectServices as $projectService) {
+            // Find the milestone for this service's stage
+            $milestone = null;
+            if ($milestonesByStage && $projectService->service_stage_id) {
+                $milestone = $milestonesByStage->get($projectService->service_stage_id);
+            }
+
             // Get templates for this service
             $templateQuery = TaskTemplate::where('service_id', $projectService->service_id)
                 ->where('is_active', true)
@@ -587,7 +606,7 @@ class ProjectController extends Controller
             $tasks = $this->taskAssignmentService->generateTasksFromTemplates(
                 $project,
                 $projectService,
-                null,
+                $milestone,
                 $autoAssign
             );
 
@@ -684,5 +703,83 @@ class ProjectController extends Controller
             'name' => $bestMatch->name,
             'score' => $score,
         ];
+    }
+
+    /**
+     * Generate milestones for a project based on selected services
+     * Returns a collection of milestones keyed by service_stage_id for linking tasks
+     */
+    private function generateProjectMilestones(Project $project): \Illuminate\Support\Collection
+    {
+        // Get unique service stages from project services
+        $projectServices = ProjectService::where('project_id', $project->id)
+            ->with('serviceStage')
+            ->get();
+
+        $stageIds = $projectServices->pluck('service_stage_id')->unique()->filter();
+
+        if ($stageIds->isEmpty()) {
+            return collect();
+        }
+
+        // Get the service stages
+        $stages = \App\Models\ServiceStage::whereIn('id', $stageIds)
+            ->orderBy('sort_order')
+            ->get();
+
+        if ($stages->isEmpty()) {
+            return collect();
+        }
+
+        // Calculate milestone dates based on project duration
+        $startDate = $project->start_date ?? now();
+        $endDate = $project->end_date ?? now()->addMonths(3);
+        $totalDays = $startDate->diffInDays($endDate);
+        $daysPerStage = $stages->count() > 0 ? max(1, floor($totalDays / $stages->count())) : 30;
+
+        // Calculate payment distribution (equal distribution by default)
+        $paymentPercentage = $stages->count() > 0 ? round(100 / $stages->count(), 2) : 100;
+
+        $milestonesByStage = collect();
+        $currentDate = $startDate->copy();
+
+        foreach ($stages as $index => $stage) {
+            // Calculate target date for this milestone
+            $targetDate = $currentDate->copy()->addDays($daysPerStage);
+
+            // Last milestone should match project end date
+            if ($index === $stages->count() - 1) {
+                $targetDate = $endDate;
+            }
+
+            // Adjust payment percentage for last milestone to ensure 100% total
+            $adjustedPaymentPercentage = $paymentPercentage;
+            if ($index === $stages->count() - 1) {
+                $adjustedPaymentPercentage = 100 - ($paymentPercentage * $index);
+            }
+
+            // Calculate payment amount based on project budget
+            $paymentAmount = $project->budget
+                ? round(($project->budget * $adjustedPaymentPercentage) / 100, 2)
+                : null;
+
+            $milestone = Milestone::create([
+                'project_id' => $project->id,
+                'service_stage_id' => $stage->id,
+                'title' => $stage->name . ' Complete',
+                'description' => 'Complete all ' . strtolower($stage->name) . ' deliverables and obtain client approval.',
+                'target_date' => $targetDate,
+                'status' => 'pending',
+                'payment_percentage' => $adjustedPaymentPercentage,
+                'payment_amount' => $paymentAmount,
+                'sort_order' => $index + 1,
+            ]);
+
+            // Key by service_stage_id for easy lookup when generating tasks
+            $milestonesByStage[$stage->id] = $milestone;
+            $currentDate = $targetDate->copy();
+        }
+
+        return $milestonesByStage;
     }
 }

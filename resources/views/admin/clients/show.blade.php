@@ -68,13 +68,64 @@
                 <div class="row mb-3">
                     <div class="col-md-3"><strong>Status:</strong></div>
                     <div class="col-md-9">
-                        @if($client->status == 'active')
-                            <span class="badge bg-success">Active</span>
+                        @php
+                            $statusColors = [
+                                'active' => 'success',
+                                'inactive' => 'secondary',
+                                'prospect' => 'info',
+                                'archived' => 'dark',
+                            ];
+                        @endphp
+                        <span class="badge bg-{{ $statusColors[$client->status] ?? 'secondary' }}">{{ ucfirst($client->status) }}</span>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-3"><strong>Relationship Manager:</strong></div>
+                    <div class="col-md-9">
+                        @if($client->relationshipManager)
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-circle me-2" style="width: 32px; height: 32px; background: var(--primary-color); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px;">
+                                    {{ strtoupper(substr($client->relationshipManager->name, 0, 1)) }}
+                                </div>
+                                <div>
+                                    <strong>{{ $client->relationshipManager->name }}</strong>
+                                    <br><small class="text-muted">{{ $client->relationshipManager->email }}</small>
+                                </div>
+                            </div>
                         @else
-                            <span class="badge bg-secondary">Inactive</span>
+                            <span class="text-muted">No relationship manager assigned</span>
                         @endif
                     </div>
                 </div>
+            </div>
+
+            <div class="dashboard-card mb-4">
+                <h5 class="mb-4"><i class="fas fa-file-alt me-2"></i>Documents</h5>
+                @forelse($client->files ?? [] as $file)
+                    <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded mb-2">
+                        <div>
+                            <i class="fas fa-{{ str_contains($file->mime_type ?? '', 'pdf') ? 'file-pdf text-danger' : 'file-image text-primary' }} me-2"></i>
+                            <strong>{{ $file->documentType->name ?? $file->name }}</strong><br>
+                            <small class="text-muted">
+                                {{ $file->original_name }} - {{ number_format(($file->file_size ?? 0) / 1024, 1) }} KB
+                                @if($file->created_at)
+                                    - Uploaded {{ $file->created_at->diffForHumans() }}
+                                @endif
+                            </small>
+                        </div>
+                        <div>
+                            <a href="{{ Storage::url($file->file_path) }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-eye"></i> View
+                            </a>
+                            <a href="{{ Storage::url($file->file_path) }}" download class="btn btn-sm btn-outline-secondary">
+                                <i class="fas fa-download"></i>
+                            </a>
+                        </div>
+                    </div>
+                @empty
+                    <p class="text-muted mb-0">No documents uploaded yet</p>
+                @endforelse
             </div>
 
             <div class="dashboard-card">
