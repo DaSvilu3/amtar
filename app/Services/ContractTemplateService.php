@@ -8,6 +8,7 @@ use PhpOffice\PhpWord\IOFactory;
 use PhpOffice\PhpWord\Settings;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class ContractTemplateService
 {
@@ -16,25 +17,26 @@ class ContractTemplateService
      *
      * @param Contract $contract
      * @param string|null $format 'docx', 'pdf', or 'both'
-     * @return string Path to generated file
+     * @return string|array Path to generated file(s)
      */
-    public function generateContract(Contract $contract, ?string $format = null): string
+    public function generateContract(Contract $contract, ?string $format = null): string|array
     {
         $format = $format ?? config('project.contract.output_format', 'docx');
 
         // Load contract with relationships
         $contract->load(['client', 'project.mainService', 'project.subService', 'project.servicePackage', 'projectServices.service', 'projectServices.serviceStage']);
 
-        // Generate DOCX first
-        $docxPath = $this->generateDocx($contract);
-
-        // Generate PDF if requested
-        if ($format === 'pdf' && config('project.contract.enable_pdf', false)) {
-            return $this->convertToPdf($docxPath);
+        // For PDF-only, use DOMPDF directly (better quality than conversion)
+        if ($format === 'pdf') {
+            return $this->generatePdfWithDompdf($contract);
         }
 
-        if ($format === 'both' && config('project.contract.enable_pdf', false)) {
-            $pdfPath = $this->convertToPdf($docxPath);
+        // Generate DOCX
+        $docxPath = $this->generateDocx($contract);
+
+        // Generate both DOCX and PDF
+        if ($format === 'both') {
+            $pdfPath = $this->generatePdfWithDompdf($contract);
             return ['docx' => $docxPath, 'pdf' => $pdfPath];
         }
 
@@ -275,31 +277,129 @@ class ContractTemplateService
     }
 
     /**
-     * Convert DOCX to PDF
+     * Convert DOCX to PDF using LibreOffice or fallback to DOMPDF
      *
      * @param string $docxPath
+     * @param Contract|null $contract Contract for DOMPDF fallback
      * @return string Path to PDF file
      */
-    protected function convertToPdf(string $docxPath): string
+    protected function convertToPdf(string $docxPath, ?Contract $contract = null): string
     {
         $fullDocxPath = storage_path('app/' . $docxPath);
         $pdfPath = str_replace('.docx', '.pdf', $docxPath);
         $fullPdfPath = storage_path('app/' . $pdfPath);
         $outputDir = dirname($fullPdfPath);
 
-        // Get PDF conversion command from config
-        $command = config('project.contract.pdf_command');
-        $command = str_replace('{input}', escapeshellarg($fullDocxPath), $command);
-        $command = str_replace('{output_dir}', escapeshellarg($outputDir), $command);
+        // Try LibreOffice first
+        if ($this->isLibreOfficeAvailable()) {
+            $command = config('project.contract.pdf_command');
+            $command = str_replace('{input}', escapeshellarg($fullDocxPath), $command);
+            $command = str_replace('{output_dir}', escapeshellarg($outputDir), $command);
 
-        // Execute conversion
-        exec($command . ' 2>&1', $output, $returnCode);
+            exec($command . ' 2>&1', $output, $returnCode);
 
-        if ($returnCode !== 0 || !file_exists($fullPdfPath)) {
-            throw new \Exception('Failed to convert DOCX to PDF: ' . implode("\n", $output));
+            if ($returnCode === 0 && file_exists($fullPdfPath)) {
+                return $pdfPath;
+            }
         }
 
-        return $pdfPath;
+        // Fallback to DOMPDF if contract is provided
+        if ($contract) {
+            return $this->generatePdfWithDompdf($contract);
+        }
+
+        throw new \Exception('PDF conversion failed. LibreOffice not available and no contract provided for DOMPDF fallback.');
+    }
+
+    /**
+     * Check if LibreOffice is available on the system
+     *
+     * @return bool
+     */
+    protected function isLibreOfficeAvailable(): bool
+    {
+        exec('which libreoffice 2>/dev/null', $output, $returnCode);
+        return $returnCode === 0 && !empty($output);
+    }
+
+    /**
+     * Generate PDF using DOMPDF from HTML template
+     *
+     * @param Contract $contract
+     * @return string Path to PDF file
+     */
+    public function generatePdfWithDompdf(Contract $contract): string
+    {
+        // Load contract with relationships
+        $contract->load(['client', 'project.mainService', 'project.subService', 'project.servicePackage', 'projectServices.service', 'projectServices.serviceStage']);
+
+        // Prepare data for the PDF view
+        $data = $this->prepareContractData($contract);
+
+        // Generate PDF from view
+        $pdf = Pdf::loadView('admin.contracts.pdf-template', $data);
+
+        // Set paper size and orientation
+        $pdf->setPaper('a4', 'portrait');
+
+        // Set options for Arabic text support
+        $pdf->setOptions([
+            'isHtml5ParserEnabled' => true,
+            'isRemoteEnabled' => true,
+            'defaultFont' => 'dejavu sans',
+        ]);
+
+        // Generate unique filename
+        $filename = 'contract_' . $contract->contract_number . '_' . time() . '.pdf';
+        $outputPath = 'contracts/' . $filename;
+        $fullOutputPath = storage_path('app/' . $outputPath);
+
+        // Ensure contracts directory exists
+        if (!file_exists(storage_path('app/contracts'))) {
+            mkdir(storage_path('app/contracts'), 0755, true);
+        }
+
+        // Save the PDF
+        $pdf->save($fullOutputPath);
+
+        return $outputPath;
+    }
+
+    /**
+     * Prepare contract data for PDF template
+     *
+     * @param Contract $contract
+     * @return array
+     */
+    protected function prepareContractData(Contract $contract): array
+    {
+        $companyInfo = config('project.contract.company_info', []);
+
+        return [
+            'contract' => $contract,
+            'project' => $contract->project,
+            'client' => $contract->client,
+            'services' => $contract->projectServices,
+            'servicesByStage' => $contract->projectServices
+                ->groupBy('serviceStage.name')
+                ->map(function ($services, $stageName) {
+                    return [
+                        'stage' => $stageName,
+                        'services' => $services,
+                        'count' => $services->count(),
+                    ];
+                })
+                ->values(),
+            'company' => [
+                'name' => $companyInfo['name'] ?? 'AMTAR Engineering',
+                'address' => $companyInfo['address'] ?? '',
+                'phone' => $companyInfo['phone'] ?? '',
+                'email' => $companyInfo['email'] ?? '',
+                'website' => $companyInfo['website'] ?? '',
+            ],
+            'today' => now()->format('d F Y'),
+            'budgetWords' => $contract->value ? $this->numberToWords($contract->value) : '',
+        ];
     }
 
     /**

@@ -15,10 +15,30 @@
                 </ol>
             </nav>
         </div>
-        <div>
-            <a href="{{ route('admin.contracts.print', $contract->id) }}" class="btn btn-primary" target="_blank">
-                <i class="fas fa-print me-2"></i>Print Contract
-            </a>
+        <div class="btn-group-wrapper">
+            <div class="btn-group me-2">
+                <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-download me-2"></i>Export
+                </button>
+                <ul class="dropdown-menu">
+                    <li>
+                        <a class="dropdown-item" href="{{ route('admin.contracts.download-pdf', $contract->id) }}">
+                            <i class="fas fa-file-pdf text-danger me-2"></i>Download PDF
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="{{ route('admin.contracts.download-docx', $contract->id) }}">
+                            <i class="fas fa-file-word text-primary me-2"></i>Download Word
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item" href="{{ route('admin.contracts.print', $contract->id) }}" target="_blank">
+                            <i class="fas fa-print me-2"></i>Print Preview
+                        </a>
+                    </li>
+                </ul>
+            </div>
             <a href="{{ route('admin.contracts.edit', $contract->id) }}" class="btn btn-warning">
                 <i class="fas fa-edit me-2"></i>Edit
             </a>

@@ -269,9 +269,9 @@ return [
         'template_path' => 'templates/contract_template.docx',
 
         /*
-         * Enable PDF generation (requires libreoffice or similar)
+         * Enable PDF generation (uses DOMPDF, LibreOffice not required)
          */
-        'enable_pdf' => false,
+        'enable_pdf' => true,
 
         /*
          * PDF conversion command (if enable_pdf is true)
@@ -281,23 +281,43 @@ return [
 
         /*
          * Template variables and their formatting
+         * Use these placeholders in your Word template: ${variable_name}
          */
         'template_variables' => [
-            'project_name' => 'name',
-            'project_number' => 'project_number',
+            // Contract info
+            'contract_number' => 'contract_number',
+            'contract_title' => 'title',
+            'contract_date' => 'created_at|date:d/m/Y',
+            'contract_status' => 'status|uppercase',
+            'quote_number' => 'contract_number',
+
+            // Project info
+            'project_name' => 'project.name',
+            'project_number' => 'project.project_number',
+            'project_type' => 'project.type',
+            'project_location' => 'project.location',
+            'project_area' => 'project.area',
+            'project_status' => 'project.status|uppercase',
+
+            // Client info
             'client_name' => 'client.name',
             'client_company' => 'client.company_name',
             'client_email' => 'client.email',
             'client_phone' => 'client.phone',
-            'contract_number' => 'contract_number',
-            'contract_date' => 'created_at|date:Y-m-d',
-            'start_date' => 'start_date|date:Y-m-d',
-            'end_date' => 'end_date|date:Y-m-d',
+            'client_address' => 'client.address',
+
+            // Financial info
             'budget' => 'value|number',
+            'total_amount' => 'value|number',
             'currency' => 'currency',
-            'status' => 'status',
+            'start_date' => 'start_date|date:d/m/Y',
+            'end_date' => 'end_date|date:d/m/Y',
+            'validity_date' => 'end_date|date:d/m/Y',
+
+            // Content
             'description' => 'description',
             'terms' => 'terms',
+            'scope_of_work' => 'description',
         ],
 
         /*
