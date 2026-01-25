@@ -11,6 +11,7 @@ use App\Models\Milestone;
 use App\Models\User;
 use App\Models\File;
 use App\Services\TaskAssignmentService;
+use App\Services\NotificationDispatcher;
 use App\Notifications\TaskAssignedNotification;
 use Illuminate\Support\Facades\Storage;
 use App\Notifications\TaskReviewSubmittedNotification;
@@ -176,8 +177,12 @@ class TaskController extends Controller
         if ($task->assigned_to && $task->assigned_to !== Auth::id()) {
             $assignedUser = User::find($task->assigned_to);
             if ($assignedUser) {
+                // In-app notification
                 $assignedUser->notify(new TaskAssignedNotification($task->load('project'), Auth::user()->name));
             }
+
+            // Email & WhatsApp notifications via templates
+            app(NotificationDispatcher::class)->taskAssigned($task);
         }
 
         return redirect()->route('admin.tasks.index', ['project_id' => $task->project_id])
@@ -206,7 +211,43 @@ class TaskController extends Controller
             'files.uploadedBy'
         ]);
 
-        return view('admin.tasks.show', compact('task'));
+        // Get available tasks for dependency management (excluding this task and its dependents to prevent circular dependencies)
+        $availableTasks = Task::where('project_id', $task->project_id)
+            ->where('id', '!=', $task->id)
+            ->whereNotIn('id', $task->dependents->pluck('id'))
+            ->get();
+
+        // Build dependency graph data
+        $relatedTaskIds = collect()
+            ->merge($task->dependencies->pluck('id'))
+            ->merge($task->dependents->pluck('id'))
+            ->push($task->id)
+            ->unique()
+            ->values();
+
+        $relatedTasks = Task::whereIn('id', $relatedTaskIds)->get()->map(function ($t) {
+            return [
+                'id' => $t->id,
+                'title' => $t->title,
+                'status' => $t->status,
+                'priority' => $t->priority,
+            ];
+        });
+
+        $dependencies = [];
+        foreach ($relatedTasks as $relatedTask) {
+            $taskModel = Task::find($relatedTask['id']);
+            foreach ($taskModel->dependencies as $dep) {
+                if ($relatedTaskIds->contains($dep->id)) {
+                    $dependencies[] = [
+                        'task_id' => $relatedTask['id'],
+                        'depends_on_task_id' => $dep->id,
+                    ];
+                }
+            }
+        }
+
+        return view('admin.tasks.show', compact('task', 'availableTasks', 'relatedTasks', 'dependencies'));
     }
 
     public function edit(Task $task)
@@ -260,8 +301,17 @@ class TaskController extends Controller
         if ($newAssignee && $newAssignee !== $oldAssignee && $newAssignee !== Auth::id()) {
             $assignedUser = User::find($newAssignee);
             if ($assignedUser) {
+                // In-app notification
                 $assignedUser->notify(new TaskAssignedNotification($task->load('project'), Auth::user()->name));
             }
+
+            // Email & WhatsApp notifications via templates
+            app(NotificationDispatcher::class)->taskAssigned($task);
+        }
+
+        // Notify on task completion
+        if ($validated['status'] === 'completed' && $task->wasChanged('status')) {
+            app(NotificationDispatcher::class)->taskCompleted($task);
         }
 
         // Sync dependencies
@@ -298,13 +348,20 @@ class TaskController extends Controller
             'status' => 'required|in:pending,in_progress,review,completed,cancelled',
         ]);
 
-        if ($validated['status'] === 'completed' && $task->status !== 'completed') {
+        $wasCompleted = $validated['status'] === 'completed' && $task->status !== 'completed';
+
+        if ($wasCompleted) {
             $task->completed_at = now();
             $task->progress = 100;
         }
 
         $task->status = $validated['status'];
         $task->save();
+
+        // Send completion notification
+        if ($wasCompleted) {
+            app(NotificationDispatcher::class)->taskCompleted($task);
+        }
 
         // For non-AJAX requests, redirect back
         if (!$request->expectsJson()) {
@@ -689,5 +746,159 @@ class TaskController extends Controller
         }
 
         return redirect()->back()->with('success', 'File deleted successfully.');
+    }
+
+    /**
+     * Add a dependency to a task.
+     */
+    public function addDependency(Request $request, Task $task)
+    {
+        $validated = $request->validate([
+            'depends_on_task_id' => 'required|exists:tasks,id',
+            'dependency_type' => 'nullable|in:finish_to_start,start_to_start,finish_to_finish',
+        ]);
+
+        $dependsOnTaskId = $validated['depends_on_task_id'];
+
+        // Prevent self-dependency
+        if ($task->id === $dependsOnTaskId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'A task cannot depend on itself.',
+            ], 422);
+        }
+
+        // Prevent circular dependencies
+        $dependsOnTask = Task::find($dependsOnTaskId);
+        if ($dependsOnTask && $this->wouldCreateCircularDependency($task, $dependsOnTask)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This dependency would create a circular reference.',
+            ], 422);
+        }
+
+        // Check if dependency already exists
+        if ($task->dependencies()->where('depends_on_task_id', $dependsOnTaskId)->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This dependency already exists.',
+            ], 422);
+        }
+
+        // Add dependency
+        $task->dependencies()->attach($dependsOnTaskId, [
+            'dependency_type' => $validated['dependency_type'] ?? 'finish_to_start',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Dependency added successfully.',
+            'dependency' => $dependsOnTask,
+        ]);
+    }
+
+    /**
+     * Remove a dependency from a task.
+     */
+    public function removeDependency(Task $task, Task $dependency)
+    {
+        // Check if dependency exists
+        if (!$task->dependencies()->where('depends_on_task_id', $dependency->id)->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This dependency does not exist.',
+            ], 404);
+        }
+
+        // Remove dependency
+        $task->dependencies()->detach($dependency->id);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Dependency removed successfully.',
+        ]);
+    }
+
+    /**
+     * Check if adding a dependency would create a circular reference.
+     */
+    private function wouldCreateCircularDependency(Task $task, Task $dependsOnTask): bool
+    {
+        // If the task we're depending on depends on us (directly or indirectly), it's circular
+        return $this->taskDependsOn($dependsOnTask, $task->id);
+    }
+
+    /**
+     * Recursively check if a task depends on another task.
+     */
+    private function taskDependsOn(Task $task, int $targetTaskId, array &$visited = []): bool
+    {
+        // Prevent infinite loops
+        if (in_array($task->id, $visited)) {
+            return false;
+        }
+
+        $visited[] = $task->id;
+
+        // Check direct dependencies
+        foreach ($task->dependencies as $dependency) {
+            if ($dependency->id === $targetTaskId) {
+                return true;
+            }
+
+            // Check recursive dependencies
+            if ($this->taskDependsOn($dependency, $targetTaskId, $visited)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Get dependency graph data for visualization.
+     */
+    public function getDependencyGraph(Task $task)
+    {
+        // Get all related tasks (dependencies and dependents)
+        $relatedTaskIds = collect()
+            ->merge($task->dependencies->pluck('id'))
+            ->merge($task->dependents->pluck('id'))
+            ->push($task->id)
+            ->unique()
+            ->values();
+
+        // Get all tasks with their dependencies
+        $relatedTasks = Task::whereIn('id', $relatedTaskIds)
+            ->with('dependencies')
+            ->get()
+            ->map(function ($t) {
+                return [
+                    'id' => $t->id,
+                    'title' => $t->title,
+                    'status' => $t->status,
+                    'priority' => $t->priority,
+                ];
+            });
+
+        // Build dependency edges
+        $dependencies = [];
+        foreach ($relatedTasks as $relatedTask) {
+            $taskModel = Task::find($relatedTask['id']);
+            foreach ($taskModel->dependencies as $dep) {
+                if ($relatedTaskIds->contains($dep->id)) {
+                    $dependencies[] = [
+                        'task_id' => $relatedTask['id'],
+                        'depends_on_task_id' => $dep->id,
+                    ];
+                }
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'tasks' => $relatedTasks,
+            'dependencies' => $dependencies,
+        ]);
     }
 }

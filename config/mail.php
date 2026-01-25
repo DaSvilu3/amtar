@@ -4,6 +4,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Email Notifications Enabled
+    |--------------------------------------------------------------------------
+    |
+    | This option allows you to disable all outgoing emails. Useful for
+    | development or when you want to temporarily stop email notifications.
+    |
+    */
+
+    'enabled' => env('MAIL_ENABLED', true),
+
+    /*
+    |--------------------------------------------------------------------------
     | Default Mailer
     |--------------------------------------------------------------------------
     |

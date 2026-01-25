@@ -17,12 +17,10 @@ class IntegrationSeeder extends Seeder
             [
                 'name' => 'WhatsApp Business API',
                 'type' => 'whatsapp',
-                'provider' => 'Twilio',
+                'provider' => 'UltraMsg',
                 'config' => json_encode([
-                    'account_sid' => '',
-                    'auth_token' => '',
-                    'whatsapp_number' => '',
-                    'webhook_url' => '',
+                    'instance_id' => '', // e.g., 'instance106036'
+                    'token' => '',       // Your UltraMsg API token
                 ]),
                 'is_active' => false,
             ],

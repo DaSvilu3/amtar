@@ -3,73 +3,69 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Integration;
+use App\Services\Integrations\EmailService;
+use App\Services\Integrations\WhatsAppService;
 use Illuminate\Http\Request;
 
 class IntegrationController extends Controller
 {
     public function index()
     {
-        $integrations = Integration::orderBy('created_at', 'desc')->paginate(20);
+        $email = app(EmailService::class);
+        $whatsapp = app(WhatsAppService::class);
+
+        $integrations = [
+            [
+                'name' => 'Email',
+                'type' => 'email',
+                'enabled' => $email->isEnabled(),
+                'configured' => $email->isConfigured(),
+                'icon' => 'fas fa-envelope',
+                'color' => '#1976d2',
+                'config_key' => 'MAIL_ENABLED',
+            ],
+            [
+                'name' => 'WhatsApp',
+                'type' => 'whatsapp',
+                'enabled' => $whatsapp->isEnabled(),
+                'configured' => $whatsapp->isConfigured(),
+                'icon' => 'fab fa-whatsapp',
+                'color' => '#25d366',
+                'config_key' => 'WHATSAPP_ENABLED',
+            ],
+        ];
+
         return view('admin.integrations.index', compact('integrations'));
     }
 
-    public function create()
+    /**
+     * Test email integration
+     */
+    public function testEmail(Request $request)
     {
-        return view('admin.integrations.create');
+        $email = app(EmailService::class);
+        $testEmail = $request->input('email');
+
+        $result = $email->test($testEmail);
+
+        return response()->json($result);
     }
 
-    public function store(Request $request)
+    /**
+     * Test WhatsApp integration
+     */
+    public function testWhatsApp(Request $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'type' => 'required|string|in:whatsapp,email,sms,api',
-            'provider' => 'nullable|string|max:255',
-            'config' => 'nullable|array',
-            'is_active' => 'boolean',
-        ]);
+        $whatsapp = app(WhatsAppService::class);
 
-        if (isset($validated['config'])) {
-            $validated['config'] = json_encode($validated['config']);
+        $result = $whatsapp->test();
+
+        // Optionally send a test message
+        if ($result['success'] && $request->has('phone')) {
+            $sent = $whatsapp->send($request->input('phone'), 'Test message from AMTAR System');
+            $result['message_sent'] = $sent;
         }
 
-        Integration::create($validated);
-
-        return redirect()->route('admin.integrations.index')->with('success', 'Integration created successfully.');
-    }
-
-    public function show(Integration $integration)
-    {
-        return view('admin.integrations.show', compact('integration'));
-    }
-
-    public function edit(Integration $integration)
-    {
-        return view('admin.integrations.edit', compact('integration'));
-    }
-
-    public function update(Request $request, Integration $integration)
-    {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'type' => 'required|string|in:whatsapp,email,sms,api',
-            'provider' => 'nullable|string|max:255',
-            'config' => 'nullable|array',
-            'is_active' => 'boolean',
-        ]);
-
-        if (isset($validated['config'])) {
-            $validated['config'] = json_encode($validated['config']);
-        }
-
-        $integration->update($validated);
-
-        return redirect()->route('admin.integrations.index')->with('success', 'Integration updated successfully.');
-    }
-
-    public function destroy(Integration $integration)
-    {
-        $integration->delete();
-        return redirect()->route('admin.integrations.index')->with('success', 'Integration deleted successfully.');
+        return response()->json($result);
     }
 }

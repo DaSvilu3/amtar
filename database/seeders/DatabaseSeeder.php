@@ -19,9 +19,13 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             UserSeeder::class,
             SettingSeeder::class,
-            IntegrationSeeder::class,
             ServiceSeeder::class,        // Seed all services, packages, stages
             DocumentTypeSeeder::class,
+
+            // Templates for notifications
+            EmailTemplateSeeder::class,
+            NotificationTemplateSeeder::class,
+            MessageTemplateSeeder::class,
 
             // Business data (depends on core data)
             ClientSeeder::class,         // Clients

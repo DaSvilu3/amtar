@@ -241,6 +241,11 @@
                 @endif
             </div>
 
+            <!-- Task Dependency Graph -->
+            @if($task->dependencies->count() > 0 || $task->dependents->count() > 0)
+            @include('admin.tasks.partials._dependency-graph')
+            @endif
+
             <!-- Review History Card -->
             @if($task->requires_review || $task->reviewed_by || $task->reviewed_at)
             <div class="dashboard-card mb-4">

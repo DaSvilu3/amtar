@@ -554,7 +554,7 @@
                             <span class="checkbox-custom"><i class="fas fa-check"></i></span>
                             <span class="checkbox-label">Keep me signed in</span>
                         </label>
-                        <a href="#" class="forgot-link">Forgot password?</a>
+                        <a href="{{ route('password.request') }}" class="forgot-link">Forgot password?</a>
                     </div>
 
                     <button type="submit" class="btn-login">

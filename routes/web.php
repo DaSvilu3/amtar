@@ -21,6 +21,7 @@ use App\Http\Controllers\Admin\ServiceManagementController;
 use App\Http\Controllers\Admin\SkillController;
 use App\Http\Controllers\Admin\TaskTemplateController;
 use App\Http\Controllers\Admin\NotificationController;
+use App\Http\Controllers\Admin\ActivityLogController;
 
 Route::get('/', function () {
     return redirect('/login');
@@ -31,6 +32,21 @@ Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.post');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
+// Password Reset Routes
+Route::get('password/reset', [\App\Http\Controllers\Auth\ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
+Route::post('password/email', [\App\Http\Controllers\Auth\ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
+Route::get('password/reset/{token}', [\App\Http\Controllers\Auth\ResetPasswordController::class, 'showResetForm'])->name('password.reset');
+Route::post('password/reset', [\App\Http\Controllers\Auth\ResetPasswordController::class, 'reset'])->name('password.update');
+
+// Two-Factor Authentication Challenge Routes
+Route::get('two-factor-challenge', [\App\Http\Controllers\Auth\TwoFactorChallengeController::class, 'show'])->name('two-factor.challenge');
+Route::post('two-factor-challenge', [\App\Http\Controllers\Auth\TwoFactorChallengeController::class, 'verify'])->name('two-factor.verify');
+
+// Email Verification Routes
+Route::get('email/verify', [\App\Http\Controllers\Auth\VerificationController::class, 'show'])->name('verification.notice');
+Route::get('email/verify/{id}/{hash}', [\App\Http\Controllers\Auth\VerificationController::class, 'verify'])->name('verification.verify')->middleware(['signed']);
+Route::post('email/resend', [\App\Http\Controllers\Auth\VerificationController::class, 'resend'])->name('verification.resend')->middleware(['auth', 'throttle:6,1']);
+
 // Admin Routes (protected by auth middleware)
 Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () {
 
@@ -38,6 +54,15 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
     // SHARED: All authenticated users can access
     // ============================================
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // Two-Factor Authentication Setup (All authenticated users)
+    Route::prefix('two-factor')->name('two-factor.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\TwoFactorController::class, 'show'])->name('show');
+        Route::get('/enable', [\App\Http\Controllers\Admin\TwoFactorController::class, 'enable'])->name('enable');
+        Route::post('/confirm', [\App\Http\Controllers\Admin\TwoFactorController::class, 'confirm'])->name('confirm');
+        Route::delete('/disable', [\App\Http\Controllers\Admin\TwoFactorController::class, 'disable'])->name('disable');
+        Route::post('/regenerate', [\App\Http\Controllers\Admin\TwoFactorController::class, 'regenerateRecoveryCodes'])->name('regenerate');
+    });
 
     // Notifications
     Route::prefix('notifications')->name('notifications.')->group(function () {
@@ -100,6 +125,11 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
         Route::post('projects/{project}/tasks/generate', [TaskController::class, 'generateFromTemplates'])->name('tasks.generate');
         Route::post('tasks/{task}/approve', [TaskController::class, 'approveReview'])->name('tasks.approve');
         Route::post('tasks/{task}/reject', [TaskController::class, 'rejectReview'])->name('tasks.reject');
+
+        // Task dependency management
+        Route::post('tasks/{task}/dependencies', [TaskController::class, 'addDependency'])->name('tasks.dependencies.add');
+        Route::delete('tasks/{task}/dependencies/{dependency}', [TaskController::class, 'removeDependency'])->name('tasks.dependencies.remove');
+        Route::get('tasks/{task}/dependency-graph', [TaskController::class, 'getDependencyGraph'])->name('tasks.dependency-graph');
     });
 
     // ============================================
@@ -169,7 +199,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
 
         // System Settings
         Route::resource('settings', SettingController::class);
-        Route::resource('integrations', IntegrationController::class);
+        Route::get('integrations', [IntegrationController::class, 'index'])->name('integrations.index');
+        Route::post('integrations/test-email', [IntegrationController::class, 'testEmail'])->name('integrations.test-email');
+        Route::post('integrations/test-whatsapp', [IntegrationController::class, 'testWhatsApp'])->name('integrations.test-whatsapp');
         Route::resource('document-types', DocumentTypeController::class);
 
         // Communication Templates
@@ -181,9 +213,16 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
         Route::resource('skills', SkillController::class)->except(['show']);
         Route::resource('task-templates', TaskTemplateController::class);
 
+        // Activity Logs
+        Route::get('activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs.index');
+        Route::get('activity-logs/{activityLog}', [ActivityLogController::class, 'show'])->name('activity-logs.show');
+        Route::post('activity-logs/clear', [ActivityLogController::class, 'clear'])->name('activity-logs.clear');
+
+
         // Reports & Analytics
         Route::get('/analytics', [DashboardController::class, 'analytics'])->name('analytics');
         Route::get('/reports', [DashboardController::class, 'reports'])->name('reports');
+        Route::post('/reports/generate', [DashboardController::class, 'generateReport'])->name('reports.generate');
 
         // Service Management Routes
         Route::prefix('services')->name('services.')->group(function () {

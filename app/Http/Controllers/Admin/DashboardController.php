@@ -450,6 +450,40 @@ class DashboardController extends Controller
         return view('admin.reports', compact('reportTypes', 'stats', 'recentReports'));
     }
 
+    /**
+     * Generate report based on type and format
+     */
+    public function generateReport(Request $request)
+    {
+        $type = $request->input('type');
+        $format = $request->input('format', 'pdf'); // 'pdf' or 'excel'
+        $filters = $request->input('filters', []);
+
+        $reportService = app(\App\Services\ReportService::class);
+
+        return match($type) {
+            'project-summary' => $format === 'pdf'
+                ? $reportService->generateProjectSummaryPDF($filters)
+                : $reportService->generateProjectSummaryExcel($filters),
+            'task-status' => $format === 'pdf'
+                ? $reportService->generateTaskStatusPDF($filters)
+                : $reportService->generateTaskStatusExcel($filters),
+            'team-performance' => $format === 'pdf'
+                ? $reportService->generateTeamPerformancePDF($filters)
+                : $reportService->generateTeamPerformanceExcel($filters),
+            'financial' => $format === 'pdf'
+                ? $reportService->generateFinancialPDF($filters)
+                : $reportService->generateFinancialExcel($filters),
+            'client-activity' => $format === 'pdf'
+                ? $reportService->generateClientActivityPDF($filters)
+                : $reportService->generateClientActivityExcel($filters),
+            'milestone-tracking' => $format === 'pdf'
+                ? $reportService->generateMilestoneTrackingPDF($filters)
+                : $reportService->generateMilestoneTrackingExcel($filters),
+            default => abort(404, 'Report type not found'),
+        };
+    }
+
     private function getRecentActivities()
     {
         $activities = collect();

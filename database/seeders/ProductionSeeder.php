@@ -46,11 +46,7 @@ class ProductionSeeder extends Seeder
         $this->command->info('Seeding system settings...');
         $this->call(SettingSeeder::class);
 
-        // 3. Integration Templates - Third-party service configurations (empty credentials)
-        $this->command->info('Seeding integration templates...');
-        $this->call(IntegrationSeeder::class);
-
-        // 4. Service Catalog - Company service offerings
+        // 3. Service Catalog - Company service offerings
         $this->command->info('Seeding service catalog...');
         $this->call(ServiceSeeder::class);
 

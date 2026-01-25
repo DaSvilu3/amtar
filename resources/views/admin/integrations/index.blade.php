@@ -6,41 +6,26 @@
 <div class="d-flex justify-content-between align-items-center">
     <div>
         <h1 class="h3 mb-1">Integrations</h1>
-        <p class="text-muted mb-0">Manage third-party service integrations</p>
+        <p class="text-muted mb-0">Email and WhatsApp notification settings</p>
     </div>
-    <a href="{{ route('admin.integrations.create') }}" class="btn btn-primary">
-        <i class="fas fa-plus"></i> Add Integration
-    </a>
 </div>
 @endsection
 
 @section('content')
 <style>
-    .integrations-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-        gap: 24px;
-        margin-bottom: 30px;
-    }
-
     .integration-card {
         background: white;
         border-radius: 12px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-        overflow: hidden;
-        transition: all 0.2s;
-    }
-
-    .integration-card:hover {
-        box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+        padding: 24px;
+        margin-bottom: 20px;
     }
 
     .integration-header {
-        padding: 20px;
         display: flex;
-        align-items: flex-start;
+        align-items: center;
         gap: 16px;
-        border-bottom: 1px solid #f1f5f9;
+        margin-bottom: 20px;
     }
 
     .integration-icon {
@@ -50,314 +35,311 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 24px;
-        flex-shrink: 0;
-    }
-
-    .integration-icon.whatsapp { background: #dcf8c6; color: #25d366; }
-    .integration-icon.email { background: #e3f2fd; color: #1976d2; }
-    .integration-icon.sms { background: #fff3e0; color: #ff9800; }
-    .integration-icon.api { background: #f3e5f5; color: #9c27b0; }
-
-    .integration-info {
-        flex: 1;
-        min-width: 0;
+        font-size: 26px;
     }
 
     .integration-info h4 {
-        font-size: 16px;
+        font-size: 18px;
         font-weight: 600;
         color: #1e293b;
-        margin: 0 0 4px;
+        margin: 0;
     }
 
     .integration-info p {
         font-size: 13px;
         color: #64748b;
-        margin: 0;
+        margin: 4px 0 0 0;
     }
 
-    .integration-status {
-        padding: 4px 10px;
+    .status-badge {
+        padding: 6px 12px;
         border-radius: 20px;
-        font-size: 11px;
+        font-size: 12px;
         font-weight: 600;
-        text-transform: uppercase;
+        margin-left: auto;
     }
 
-    .integration-status.active {
-        background: #e8f5e9;
-        color: #2e7d32;
+    .status-badge.enabled {
+        background: #dcfce7;
+        color: #16a34a;
     }
 
-    .integration-status.inactive {
-        background: #fce4ec;
-        color: #c62828;
+    .status-badge.disabled {
+        background: #f1f5f9;
+        color: #64748b;
     }
 
-    .integration-body {
+    .status-badge.not-configured {
+        background: #fef3c7;
+        color: #d97706;
+    }
+
+    .config-section {
+        background: #f8fafc;
+        border-radius: 10px;
         padding: 20px;
     }
 
-    .integration-detail {
-        display: flex;
-        justify-content: space-between;
-        padding: 8px 0;
-        border-bottom: 1px solid #f1f5f9;
-    }
-
-    .integration-detail:last-child {
-        border-bottom: none;
-    }
-
-    .integration-detail .label {
-        font-size: 13px;
-        color: #64748b;
-    }
-
-    .integration-detail .value {
-        font-size: 13px;
-        font-weight: 500;
+    .config-section h5 {
+        font-size: 14px;
+        font-weight: 600;
         color: #1e293b;
-    }
-
-    .integration-footer {
-        padding: 16px 20px;
-        background: #f8fafc;
-        display: flex;
-        gap: 8px;
-    }
-
-    .btn-integration {
-        flex: 1;
-        padding: 8px 12px;
-        border-radius: 8px;
-        font-size: 13px;
-        font-weight: 500;
-        text-align: center;
-        text-decoration: none;
-        transition: all 0.2s;
-        border: none;
-        cursor: pointer;
-    }
-
-    .btn-integration.view {
-        background: #e3f2fd;
-        color: #1565c0;
-    }
-
-    .btn-integration.view:hover {
-        background: #bbdefb;
-    }
-
-    .btn-integration.edit {
-        background: #fff3e0;
-        color: #ef6c00;
-    }
-
-    .btn-integration.edit:hover {
-        background: #ffe0b2;
-    }
-
-    .btn-integration.delete {
-        background: #ffebee;
-        color: #c62828;
-    }
-
-    .btn-integration.delete:hover {
-        background: #ffcdd2;
-    }
-
-    .type-filter {
-        display: flex;
-        gap: 10px;
-        margin-bottom: 24px;
-    }
-
-    .filter-btn {
-        padding: 8px 16px;
-        border-radius: 8px;
-        font-size: 13px;
-        font-weight: 500;
-        background: white;
-        border: 1px solid #e2e8f0;
-        color: #64748b;
-        cursor: pointer;
-        transition: all 0.2s;
+        margin-bottom: 16px;
         display: flex;
         align-items: center;
         gap: 8px;
     }
 
-    .filter-btn:hover, .filter-btn.active {
-        background: var(--primary-color, #2f0e13);
-        border-color: var(--primary-color, #2f0e13);
-        color: white;
+    .config-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px solid #e2e8f0;
     }
 
-    .filter-btn .count {
-        padding: 2px 8px;
-        border-radius: 10px;
-        font-size: 11px;
-        background: rgba(0,0,0,0.1);
+    .config-item:last-child {
+        border-bottom: none;
     }
 
-    .filter-btn.active .count {
-        background: rgba(255,255,255,0.2);
-    }
-
-    .empty-state {
-        text-align: center;
-        padding: 80px 20px;
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    }
-
-    .empty-state i {
-        font-size: 64px;
-        color: #e2e8f0;
-        margin-bottom: 20px;
-    }
-
-    .empty-state h4 {
-        font-size: 18px;
-        font-weight: 600;
-        color: #1e293b;
-        margin-bottom: 8px;
-    }
-
-    .empty-state p {
+    .config-label {
+        font-size: 13px;
         color: #64748b;
-        margin-bottom: 20px;
     }
 
-    @media (max-width: 640px) {
-        .type-filter {
-            flex-wrap: wrap;
-        }
+    .config-value {
+        font-size: 13px;
+        font-weight: 500;
+        color: #1e293b;
+        font-family: monospace;
+    }
+
+    .config-value.masked {
+        color: #94a3b8;
+    }
+
+    .btn-test {
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        border: 1px solid #e2e8f0;
+        background: white;
+        color: #1e293b;
+        cursor: pointer;
+        transition: all 0.2s;
+        margin-top: 16px;
+    }
+
+    .btn-test:hover {
+        background: #f1f5f9;
+    }
+
+    .btn-test:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .test-result {
+        margin-top: 12px;
+        padding: 12px;
+        border-radius: 8px;
+        font-size: 13px;
+        display: none;
+    }
+
+    .test-result.success {
+        background: #dcfce7;
+        color: #16a34a;
+    }
+
+    .test-result.error {
+        background: #fee2e2;
+        color: #dc2626;
+    }
+
+    .env-hint {
+        background: #fffbeb;
+        border: 1px solid #fcd34d;
+        border-radius: 8px;
+        padding: 16px;
+        margin-top: 16px;
+        font-size: 13px;
+        color: #92400e;
+    }
+
+    .env-hint code {
+        background: #fef3c7;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-family: monospace;
     }
 </style>
 
-@if(session('success'))
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        {{ session('success') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-@endif
+<div class="row">
+    @foreach($integrations as $integration)
+    <div class="col-md-6">
+        <div class="integration-card">
+            <div class="integration-header">
+                <div class="integration-icon" style="background: {{ $integration['color'] }}20; color: {{ $integration['color'] }}">
+                    <i class="{{ $integration['icon'] }}"></i>
+                </div>
+                <div class="integration-info">
+                    <h4>{{ $integration['name'] }}</h4>
+                    <p>
+                        @if($integration['type'] === 'email')
+                            Send notifications via email
+                        @else
+                            Send notifications via WhatsApp
+                        @endif
+                    </p>
+                </div>
+                @if(!$integration['configured'])
+                    <span class="status-badge not-configured">Not Configured</span>
+                @elseif($integration['enabled'])
+                    <span class="status-badge enabled">Enabled</span>
+                @else
+                    <span class="status-badge disabled">Disabled</span>
+                @endif
+            </div>
 
-<!-- Type Filter -->
-<div class="type-filter">
-    <button class="filter-btn active" data-type="all">
-        All <span class="count">{{ $integrations->total() }}</span>
-    </button>
-    <button class="filter-btn" data-type="whatsapp">
-        <i class="fab fa-whatsapp"></i> WhatsApp
-    </button>
-    <button class="filter-btn" data-type="email">
-        <i class="fas fa-envelope"></i> Email
-    </button>
-    <button class="filter-btn" data-type="sms">
-        <i class="fas fa-sms"></i> SMS
-    </button>
-    <button class="filter-btn" data-type="api">
-        <i class="fas fa-code"></i> API
-    </button>
+            <div class="config-section">
+                <h5><i class="fas fa-cog"></i> Configuration</h5>
+
+                @if($integration['type'] === 'email')
+                    <div class="config-item">
+                        <span class="config-label">SMTP Host</span>
+                        <span class="config-value">{{ config('mail.mailers.smtp.host') ?: 'Not set' }}</span>
+                    </div>
+                    <div class="config-item">
+                        <span class="config-label">SMTP Port</span>
+                        <span class="config-value">{{ config('mail.mailers.smtp.port') ?: 'Not set' }}</span>
+                    </div>
+                    <div class="config-item">
+                        <span class="config-label">Username</span>
+                        <span class="config-value">{{ config('mail.mailers.smtp.username') ?: 'Not set' }}</span>
+                    </div>
+                    <div class="config-item">
+                        <span class="config-label">From Address</span>
+                        <span class="config-value">{{ config('mail.from.address') ?: 'Not set' }}</span>
+                    </div>
+
+                    <button class="btn-test" onclick="testEmail()" id="test-email-btn" {{ !$integration['configured'] ? 'disabled' : '' }}>
+                        <i class="fas fa-paper-plane me-1"></i> Send Test Email
+                    </button>
+                    <div class="test-result" id="email-result"></div>
+
+                    @if(!$integration['configured'])
+                    <div class="env-hint">
+                        <strong>Configure in .env:</strong><br>
+                        <code>MAIL_HOST</code>, <code>MAIL_PORT</code>, <code>MAIL_USERNAME</code>, <code>MAIL_PASSWORD</code>
+                    </div>
+                    @endif
+                @else
+                    <div class="config-item">
+                        <span class="config-label">Instance ID</span>
+                        <span class="config-value {{ config('services.whatsapp.instance_id') ? '' : 'masked' }}">
+                            {{ config('services.whatsapp.instance_id') ?: 'Not set' }}
+                        </span>
+                    </div>
+                    <div class="config-item">
+                        <span class="config-label">Token</span>
+                        <span class="config-value masked">
+                            {{ config('services.whatsapp.token') ? '••••••••' : 'Not set' }}
+                        </span>
+                    </div>
+
+                    <button class="btn-test" onclick="testWhatsApp()" id="test-whatsapp-btn" {{ !$integration['configured'] ? 'disabled' : '' }}>
+                        <i class="fab fa-whatsapp me-1"></i> Test Connection
+                    </button>
+                    <div class="test-result" id="whatsapp-result"></div>
+
+                    @if(!$integration['configured'])
+                    <div class="env-hint">
+                        <strong>Configure in .env:</strong><br>
+                        <code>WHATSAPP_ENABLED=true</code><br>
+                        <code>WHATSAPP_INSTANCE_ID=your_instance_id</code><br>
+                        <code>WHATSAPP_TOKEN=your_token</code>
+                    </div>
+                    @endif
+                @endif
+            </div>
+        </div>
+    </div>
+    @endforeach
 </div>
 
-@if($integrations->count() > 0)
-    <div class="integrations-grid">
-        @foreach($integrations as $integration)
-            <div class="integration-card" data-type="{{ $integration->type }}">
-                <div class="integration-header">
-                    <div class="integration-icon {{ $integration->type }}">
-                        @switch($integration->type)
-                            @case('whatsapp')
-                                <i class="fab fa-whatsapp"></i>
-                                @break
-                            @case('email')
-                                <i class="fas fa-envelope"></i>
-                                @break
-                            @case('sms')
-                                <i class="fas fa-sms"></i>
-                                @break
-                            @case('api')
-                                <i class="fas fa-code"></i>
-                                @break
-                        @endswitch
-                    </div>
-                    <div class="integration-info">
-                        <h4>{{ $integration->name }}</h4>
-                        <p>{{ ucfirst($integration->type) }} Integration</p>
-                    </div>
-                    <span class="integration-status {{ $integration->is_active ? 'active' : 'inactive' }}">
-                        {{ $integration->is_active ? 'Active' : 'Inactive' }}
-                    </span>
-                </div>
-                <div class="integration-body">
-                    <div class="integration-detail">
-                        <span class="label">Provider</span>
-                        <span class="value">{{ $integration->provider ?: 'Not specified' }}</span>
-                    </div>
-                    <div class="integration-detail">
-                        <span class="label">Created</span>
-                        <span class="value">{{ $integration->created_at->format('M d, Y') }}</span>
-                    </div>
-                    <div class="integration-detail">
-                        <span class="label">Last Updated</span>
-                        <span class="value">{{ $integration->updated_at->diffForHumans() }}</span>
-                    </div>
-                </div>
-                <div class="integration-footer">
-                    <a href="{{ route('admin.integrations.show', $integration) }}" class="btn-integration view">
-                        <i class="fas fa-eye"></i> View
-                    </a>
-                    <a href="{{ route('admin.integrations.edit', $integration) }}" class="btn-integration edit">
-                        <i class="fas fa-edit"></i> Edit
-                    </a>
-                    <form action="{{ route('admin.integrations.destroy', $integration) }}" method="POST" style="flex: 1;"
-                          onsubmit="return confirm('Are you sure you want to delete this integration?')">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" class="btn-integration delete" style="width: 100%;">
-                            <i class="fas fa-trash"></i> Delete
-                        </button>
-                    </form>
-                </div>
-            </div>
-        @endforeach
-    </div>
-
-    {{ $integrations->links() }}
-@else
-    <div class="empty-state">
-        <i class="fas fa-plug"></i>
-        <h4>No Integrations Yet</h4>
-        <p>Add integrations to connect with external services like WhatsApp, Email, SMS, and more.</p>
-        <a href="{{ route('admin.integrations.create') }}" class="btn btn-primary">
-            <i class="fas fa-plus"></i> Add First Integration
-        </a>
-    </div>
-@endif
+<div class="integration-card">
+    <h5 class="mb-3"><i class="fas fa-info-circle me-2 text-primary"></i> How to Enable/Disable</h5>
+    <p class="text-muted mb-0">
+        To enable or disable notifications, edit your <code>.env</code> file:<br><br>
+        <strong>Email:</strong> Set <code>MAIL_ENABLED=true</code> or <code>MAIL_ENABLED=false</code><br>
+        <strong>WhatsApp:</strong> Set <code>WHATSAPP_ENABLED=true</code> or <code>WHATSAPP_ENABLED=false</code><br><br>
+        After changing, run: <code>php artisan config:clear</code>
+    </p>
+</div>
 
 <script>
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const type = this.dataset.type;
+function testEmail() {
+    const btn = document.getElementById('test-email-btn');
+    const result = document.getElementById('email-result');
 
-            // Update active state
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Sending...';
 
-            // Filter cards
-            document.querySelectorAll('.integration-card').forEach(card => {
-                if (type === 'all' || card.dataset.type === type) {
-                    card.style.display = 'block';
-                } else {
-                    card.style.display = 'none';
-                }
-            });
-        });
+    fetch('{{ route("admin.integrations.test-email") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        result.style.display = 'block';
+        result.className = 'test-result ' + (data.success ? 'success' : 'error');
+        result.innerHTML = data.message;
+    })
+    .catch(error => {
+        result.style.display = 'block';
+        result.className = 'test-result error';
+        result.innerHTML = 'Error: ' + error.message;
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-paper-plane me-1"></i> Send Test Email';
     });
+}
+
+function testWhatsApp() {
+    const btn = document.getElementById('test-whatsapp-btn');
+    const result = document.getElementById('whatsapp-result');
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Testing...';
+
+    fetch('{{ route("admin.integrations.test-whatsapp") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        result.style.display = 'block';
+        result.className = 'test-result ' + (data.success ? 'success' : 'error');
+        result.innerHTML = data.message;
+    })
+    .catch(error => {
+        result.style.display = 'block';
+        result.className = 'test-result error';
+        result.innerHTML = 'Error: ' + error.message;
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fab fa-whatsapp me-1"></i> Test Connection';
+    });
+}
 </script>
 @endsection

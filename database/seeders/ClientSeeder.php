@@ -13,12 +13,21 @@ class ClientSeeder extends Seeder
      */
     public function run(): void
     {
+        // Test contact info for real notification testing
+        $testPhone = '+96898957933';
+        $testEmails = [
+            'echomoodgogler@gmail.com',
+            'yousuf.tech.prog@gmail.com',
+            'yousuf.almawali1996@gmail.com',
+            'yousuf@yousuf-abdullah.me',
+        ];
+
         $clients = [
             [
                 'name' => 'Ahmed Al-Rashid',
                 'company_name' => 'Al-Rashid Real Estate Development',
-                'email' => 'ahmed@alrashid-dev.om',
-                'phone' => '+968 9123 4567',
+                'email' => $testEmails[0], // Test email
+                'phone' => $testPhone, // Test phone
                 'secondary_phone' => '+968 2412 3456',
                 'address' => 'Building 45, Street 12, Al Khuwair',
                 'city' => 'Muscat',
@@ -31,8 +40,8 @@ class ClientSeeder extends Seeder
             [
                 'name' => 'Fatima Al-Balushi',
                 'company_name' => 'Oman Hospitality Group',
-                'email' => 'fatima@omanhospitality.om',
-                'phone' => '+968 9234 5678',
+                'email' => $testEmails[1], // Test email
+                'phone' => $testPhone, // Test phone
                 'secondary_phone' => null,
                 'address' => 'Tower C, Oman Business Park',
                 'city' => 'Muscat',
@@ -45,8 +54,8 @@ class ClientSeeder extends Seeder
             [
                 'name' => 'Khalid Al-Hinai',
                 'company_name' => 'Gulf Commercial Properties',
-                'email' => 'khalid@gulfcommercial.om',
-                'phone' => '+968 9345 6789',
+                'email' => $testEmails[2], // Test email
+                'phone' => $testPhone, // Test phone
                 'secondary_phone' => '+968 2456 7890',
                 'address' => 'Office 201, Commercial District',
                 'city' => 'Sohar',
@@ -59,8 +68,8 @@ class ClientSeeder extends Seeder
             [
                 'name' => 'Maryam Al-Lawati',
                 'company_name' => 'Wellness Centers LLC',
-                'email' => 'maryam@wellnesscenters.om',
-                'phone' => '+968 9456 7890',
+                'email' => $testEmails[3], // Test email
+                'phone' => $testPhone, // Test phone
                 'secondary_phone' => null,
                 'address' => 'Villa 78, Shatti Al Qurum',
                 'city' => 'Muscat',

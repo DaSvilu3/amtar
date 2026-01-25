@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -27,19 +27,41 @@
             --sidebar-collapsed-width: 72px;
             --header-height: 64px;
             --bg-light: #f8fafc;
+            --bg-body: #f1f5f9;
+            --bg-card: #ffffff;
             --border-color: #e2e8f0;
+            --text-primary: #1e293b;
             --text-muted: #64748b;
             --success-color: #10b981;
             --warning-color: #f59e0b;
             --danger-color: #ef4444;
         }
 
+        [data-theme="dark"] {
+            --primary-color: #f3c887;
+            --primary-light: #f8ddb0;
+            --secondary-color: #2f0e13;
+            --secondary-light: #4a1a22;
+            --bg-light: #1e293b;
+            --bg-body: #0f172a;
+            --bg-card: #1e293b;
+            --border-color: #334155;
+            --text-primary: #f1f5f9;
+            --text-muted: #94a3b8;
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: 'Inter', sans-serif;
-            background: #f1f5f9;
+            background: var(--bg-body);
             min-height: 100vh;
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        [data-theme="dark"] body {
+            background: var(--bg-body);
         }
 
         h1, h2, h3, h4, h5, h6 { font-family: 'Poppins', sans-serif; }
@@ -573,17 +595,156 @@
 
         /* Dashboard Card */
         .dashboard-card {
-            background: white;
+            background: var(--bg-card);
             border-radius: 12px;
             padding: 24px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.04);
             border: 1px solid var(--border-color);
-            transition: all 0.15s ease;
+            transition: all 0.3s ease;
         }
 
         .dashboard-card:hover {
             box-shadow: 0 4px 12px rgba(0,0,0,0.06);
         }
+
+        [data-theme="dark"] .dashboard-card {
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+
+        [data-theme="dark"] .dashboard-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        /* Dark mode header */
+        [data-theme="dark"] .header {
+            background: var(--bg-card);
+            border-color: var(--border-color);
+        }
+
+        [data-theme="dark"] .header-search input {
+            background: var(--bg-light);
+            border-color: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        [data-theme="dark"] .header-search input::placeholder {
+            color: var(--text-muted);
+        }
+
+        [data-theme="dark"] .header-user {
+            background: var(--bg-light);
+            border-color: var(--border-color);
+        }
+
+        [data-theme="dark"] .header-user-name {
+            color: var(--text-primary);
+        }
+
+        [data-theme="dark"] .btn-toggle {
+            background: var(--bg-light);
+            border-color: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        /* Dark mode tables */
+        [data-theme="dark"] .table {
+            color: var(--text-primary);
+        }
+
+        [data-theme="dark"] .table-light {
+            background-color: var(--bg-light) !important;
+            color: var(--text-primary);
+        }
+
+        [data-theme="dark"] .table-hover tbody tr:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        [data-theme="dark"] .table > :not(caption) > * > * {
+            background-color: transparent;
+            border-color: var(--border-color);
+        }
+
+        /* Dark mode forms */
+        [data-theme="dark"] .form-control,
+        [data-theme="dark"] .form-select {
+            background-color: var(--bg-light);
+            border-color: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        [data-theme="dark"] .form-control:focus,
+        [data-theme="dark"] .form-select:focus {
+            background-color: var(--bg-light);
+            border-color: #f3c887;
+            color: var(--text-primary);
+        }
+
+        /* Dark mode alerts */
+        [data-theme="dark"] .alert {
+            border-color: var(--border-color);
+        }
+
+        /* Dark mode dropdowns */
+        [data-theme="dark"] .dropdown-menu {
+            background-color: var(--bg-card);
+            border-color: var(--border-color);
+        }
+
+        [data-theme="dark"] .dropdown-item {
+            color: var(--text-primary);
+        }
+
+        [data-theme="dark"] .dropdown-item:hover {
+            background-color: var(--bg-light);
+        }
+
+        /* Dark mode badges */
+        [data-theme="dark"] .badge.bg-light {
+            background-color: var(--bg-light) !important;
+            color: var(--text-primary) !important;
+        }
+
+        /* Dark mode text */
+        [data-theme="dark"] .text-dark {
+            color: var(--text-primary) !important;
+        }
+
+        [data-theme="dark"] .text-muted {
+            color: var(--text-muted) !important;
+        }
+
+        /* Dark mode page title */
+        [data-theme="dark"] .page-title h1 {
+            color: var(--text-primary);
+        }
+
+        /* Theme toggle button */
+        .btn-theme-toggle {
+            position: relative;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: none;
+            border-radius: 10px;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .btn-theme-toggle:hover {
+            background: var(--bg-light);
+            color: var(--primary-color);
+        }
+
+        .btn-theme-toggle .fa-sun { display: none; }
+        .btn-theme-toggle .fa-moon { display: block; }
+
+        [data-theme="dark"] .btn-theme-toggle .fa-sun { display: block; }
+        [data-theme="dark"] .btn-theme-toggle .fa-moon { display: none; }
 
         /* Responsive */
         @media (max-width: 768px) {
@@ -709,6 +870,12 @@
             </div>
 
             <div class="header-actions">
+                <!-- Theme Toggle -->
+                <button class="btn-theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">
+                    <i class="fas fa-moon"></i>
+                    <i class="fas fa-sun"></i>
+                </button>
+
                 <!-- Notifications Dropdown -->
                 <div class="dropdown">
                     <button class="btn-header" title="Notifications" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" id="notificationDropdownBtn">
@@ -751,6 +918,7 @@
                         @auth
                         <li><a class="dropdown-item" href="{{ route('admin.users.show', auth()->id()) }}"><i class="fas fa-user me-2 text-muted"></i>My Profile</a></li>
                         @endauth
+                        <li><a class="dropdown-item" href="{{ route('admin.two-factor.show') }}"><i class="fas fa-shield-alt me-2 text-muted"></i>Two-Factor Auth</a></li>
                         <li><a class="dropdown-item" href="{{ route('admin.settings.index') }}"><i class="fas fa-cog me-2 text-muted"></i>Settings</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li>
@@ -807,10 +975,29 @@
             localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
         }
 
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        }
+
+        // Apply theme immediately to prevent flash
+        (function() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+
         document.addEventListener('DOMContentLoaded', function() {
             if (localStorage.getItem('sidebarCollapsed') === 'true') {
                 document.getElementById('sidebar').classList.add('collapsed');
             }
+
+            // Apply saved theme
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
 
             // Scroll sidebar to active item
             scrollToActiveNavItem();

@@ -114,6 +114,7 @@ class NavigationService
             $this->menuItem('Roles', 'admin/roles*', 'fa-user-shield', 'admin.roles.index'),
             $this->menuItem('Document Types', 'admin/document-types*', 'fa-file-alt', 'admin.document-types.index'),
             $this->menuItem('Integrations', 'admin/integrations*', 'fa-plug', 'admin.integrations.index'),
+            $this->menuItem('Activity Log', 'admin/activity-logs*', 'fa-history', 'admin.activity-logs.index'),
             $this->menuItem('Settings', 'admin/settings*', 'fa-cog', 'admin.settings.index'),
         ];
 

@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Model;
 
 class Task extends Model
 {
+    use LogsActivity;
     protected $fillable = [
         'project_id',
         'project_service_id',

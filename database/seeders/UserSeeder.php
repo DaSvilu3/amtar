@@ -15,12 +15,15 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
+        // Test phone number for all users (for WhatsApp notifications)
+        $testPhone = '+96898957933';
+
         // Create Admin User
         $admin = User::create([
             'name' => 'Amtar Admin',
-            'email' => 'admin@amtar.om',
+            'email' => 'echomoodgogler@gmail.com',
             'password' => Hash::make('password'),
-            'phone' => '+968 1234 5678',
+            'phone' => $testPhone,
             'is_active' => true,
         ]);
 
@@ -33,9 +36,9 @@ class UserSeeder extends Seeder
         // Create Project Manager User
         $pm = User::create([
             'name' => 'Project Manager',
-            'email' => 'pm@amtar.om',
+            'email' => 'yousuf.tech.prog@gmail.com',
             'password' => Hash::make('password'),
-            'phone' => '+968 2345 6789',
+            'phone' => $testPhone,
             'is_active' => true,
         ]);
 
@@ -47,9 +50,9 @@ class UserSeeder extends Seeder
         // Create Engineer User
         $engineer = User::create([
             'name' => 'Senior Engineer',
-            'email' => 'engineer@amtar.om',
+            'email' => 'yousuf.almawali1996@gmail.com',
             'password' => Hash::make('password'),
-            'phone' => '+968 3456 7890',
+            'phone' => $testPhone,
             'is_active' => true,
         ]);
 
@@ -61,9 +64,9 @@ class UserSeeder extends Seeder
         // Create Accountant User
         $accountant = User::create([
             'name' => 'Chief Accountant',
-            'email' => 'accountant@amtar.om',
+            'email' => 'yousuf@yousuf-abdullah.me',
             'password' => Hash::make('password'),
-            'phone' => '+968 4567 8901',
+            'phone' => $testPhone,
             'is_active' => true,
         ]);
 

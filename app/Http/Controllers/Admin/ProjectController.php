@@ -18,6 +18,7 @@ use App\Models\Milestone;
 use App\Models\TaskTemplate;
 use App\Models\Skill;
 use App\Services\TaskAssignmentService;
+use App\Services\NotificationDispatcher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -137,6 +138,10 @@ class ProjectController extends Controller
             }
 
             DB::commit();
+
+            // Send notification to client about new project
+            app(NotificationDispatcher::class)->projectCreated($project);
+
             return redirect()->route('admin.projects.index')->with('success', $message);
         } catch (\Exception $e) {
             DB::rollBack();

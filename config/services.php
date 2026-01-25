@@ -35,4 +35,15 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | WhatsApp (UltraMsg)
+    |--------------------------------------------------------------------------
+    */
+    'whatsapp' => [
+        'enabled' => env('WHATSAPP_ENABLED', false),
+        'instance_id' => env('WHATSAPP_INSTANCE_ID'),
+        'token' => env('WHATSAPP_TOKEN'),
+    ],
+
 ];
